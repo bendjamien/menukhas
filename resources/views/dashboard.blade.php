@@ -1,5 +1,5 @@
 <x-app-layout>
-    <div class="p-8">
+    <div>
         <div class="bg-sky-400 text-white p-6 rounded-lg shadow-md mb-8">
             <h1 class="text-2xl font-bold">SELAMAT DATANG DI DASHBOARD <span class="text-yellow-300">MENU</span>KHAS</h1>
             <p>Kelola Transaksi Kasir Anda</p>
