@@ -38,9 +38,6 @@
                     </div>
                     <button type="submit" class="w-full bg-[#5DA5D7] text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-600">Masuk</button>
                 </form>
-                <p class="text-center text-sm text-gray-600 mt-6">
-                    Belum punya akun? <a href="{{ route('register') }}" class="text-blue-600 font-medium hover:underline">Daftar disini</a>
-                </p>
             </div>
         </div>
     </div> @if (session('success'))

@@ -10,27 +10,16 @@
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
 
-        <!-- Toastify CSS -->
         <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
     <body class="font-sans antialiased">
-        <!-- 
-            PERBAIKAN 1: 
-            Menambahkan 'x-data' untuk inisialisasi state sidebar.
-        -->
         <div x-data="{ isSidebarOpen: false }" class="h-screen flex bg-slate-100 overflow-hidden">
             
             @include('layouts.sidebar')
 
             <div class="flex-1 flex flex-col overflow-y-auto">
-                
-                <!-- 
-                    PERBAIKAN 2:
-                    Menambahkan Backdrop Overlay.
-                    Ini adalah area gelap di belakang sidebar saat aktif di mobile.
-                -->
                 <div 
                     x-show="isSidebarOpen" 
                     @click="isSidebarOpen = false" 
@@ -46,12 +35,6 @@
 
                 <header class="sticky top-6 z-20 mx-8 mt-6 bg-white/95 backdrop-blur-md shadow-lg rounded-xl border border-gray-100">
                     <div class="p-4 flex justify-between items-center">
-
-                        <!-- 
-                            PERBAIKAN 3:
-                            Menambahkan Tombol Hamburger.
-                            Hanya muncul di mobile ('md:hidden').
-                        -->
                         <button 
                             @click.prevent="isSidebarOpen = !isSidebarOpen" 
                             class="md:hidden p-2 -ml-2 text-gray-600 hover:text-gray-900 rounded-full focus:outline-none focus:ring-2 focus:ring-sky-500"
@@ -59,12 +42,6 @@
                             <span class="sr-only">Buka menu</span>
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                         </button>
-                        
-                        <!-- 
-                            PERBAIKAN 4:
-                            Search Bar disembunyikan di mobile ('hidden')
-                            dan ditampilkan di desktop ('md:block').
-                        -->
                         <div class="relative w-full max-w-xs hidden md:block">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
@@ -117,24 +94,16 @@
                         </div>
                     </div>
                 </header>
-
-                <!-- 
-                    PERBAIKAN PADDING:
-                    Mengubah 'pt-24' (terlalu jauh) kembali ke 'p-8'.
-                -->
-                <main class="p-8">
+                <main class="p-8 pb-24">
                     {{ $slot }}
                 </main>
             </div>
 
         </div> 
         
-        <!-- Toastify JS -->
         <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 
-        <!-- Logika Toast Multi-warna (Sudah benar) -->
         
-        <!-- Toast Sukses (Biru) -->
         @if (session('toast_success'))
             <div 
                 x-data 
@@ -154,7 +123,6 @@
             </div>
         @endif
 
-        <!-- Toast Bahaya/Logout (Merah) -->
         @if (session('toast_danger'))
             <div 
                 x-data 
@@ -174,7 +142,6 @@
             </div>
         @endif
 
-        <!-- Toast Error Validasi (Merah) -->
         @if ($errors->any())
             <div 
                 x-data 

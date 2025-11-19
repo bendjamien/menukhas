@@ -1,8 +1,6 @@
 <x-app-layout>
-    <!-- Container dengan padding yang konsisten -->
     <div class="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
         
-        <!-- Header Halaman dengan Background Gradient -->
         <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-6 mb-8 shadow-lg">
             <h1 class="text-2xl sm:text-3xl font-bold text-white">
                 Pengaturan Profil
@@ -11,21 +9,9 @@
                 Kelola informasi profil, keamanan akun, dan preferensi Anda
             </p>
         </div>
-
-        <!-- 
-            Wrapper Komponen Tab menggunakan Alpine.js 
-            Menggunakan grid layout yang responsif
-        -->
         <div x-data="{ activeTab: 'info' }" class="lg:grid lg:grid-cols-12 lg:gap-8">
-            
-            <!-- 
-                Kolom 1: Navigasi Tab 
-                Diubah untuk tampilan yang lebih modern di mobile dan desktop
-            -->
             <div class="lg:col-span-3 mb-6 lg:mb-0">
-                <!-- Navigasi Tab untuk Desktop -->
                 <div class="hidden lg:block bg-white rounded-xl shadow-sm p-2">
-                    <!-- Tombol Tab: Informasi Profil -->
                     <button @click="activeTab = 'info'"
                             :class="{ 
                                 'bg-blue-50 text-blue-700 border-r-2 border-blue-700': activeTab === 'info', 
@@ -37,8 +23,6 @@
                         </svg>
                         <span class="font-medium">Informasi Profil</span>
                     </button>
-
-                    <!-- Tombol Tab: Ubah Password -->
                     <button @click="activeTab = 'password'"
                             :class="{ 
                                 'bg-blue-50 text-blue-700 border-r-2 border-blue-700': activeTab === 'password', 
@@ -50,8 +34,6 @@
                         </svg>
                         <span class="font-medium">Ubah Password</span>
                     </button>
-
-                    <!-- Tombol Tab: Hapus Akun -->
                     <button @click="activeTab = 'delete'"
                             :class="{ 
                                 'bg-red-50 text-red-700 border-r-2 border-red-700': activeTab === 'delete', 
@@ -65,9 +47,7 @@
                     </button>
                 </div>
 
-                <!-- Navigasi Tab untuk Mobile (Horizontal Scroll) -->
                 <div class="lg:hidden flex space-x-2 overflow-x-auto pb-2 -mx-4 px-4">
-                    <!-- Tombol Tab: Informasi Profil -->
                     <button @click="activeTab = 'info'"
                             :class="{ 
                                 'bg-blue-600 text-white': activeTab === 'info', 
@@ -80,7 +60,6 @@
                         <span>Profil</span>
                     </button>
 
-                    <!-- Tombol Tab: Ubah Password -->
                     <button @click="activeTab = 'password'"
                             :class="{ 
                                 'bg-blue-600 text-white': activeTab === 'password', 
@@ -93,7 +72,6 @@
                         <span>Password</span>
                     </button>
 
-                    <!-- Tombol Tab: Hapus Akun -->
                     <button @click="activeTab = 'delete'"
                             :class="{ 
                                 'bg-red-600 text-white': activeTab === 'delete', 
@@ -108,16 +86,13 @@
                 </div>
             </div>
 
-            <!-- Kolom 2: Konten Tab -->
             <div class="lg:col-span-9">
-                <!-- Panel Konten: Informasi Profil -->
                 <div x-show="activeTab === 'info'"
                      x-transition:enter="transition ease-out duration-300"
                      x-transition:enter-start="opacity-0 transform translate-y-4"
                      x-transition:enter-end="opacity-100 transform translate-y-0"
                      class="bg-white rounded-xl shadow-sm overflow-hidden">
                     
-                    <!-- Header Konten dengan Background Subtle -->
                     <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 border-b border-blue-100">
                         <div class="flex items-center">
                             <div class="bg-blue-100 rounded-full p-3 mr-4">
@@ -139,7 +114,6 @@
                     </div>
                 </div>
 
-                <!-- Panel Konten: Ubah Password -->
                 <div x-show="activeTab === 'password'"
                      x-transition:enter="transition ease-out duration-300"
                      x-transition:enter-start="opacity-0 transform translate-y-4"
@@ -147,7 +121,6 @@
                      class="bg-white rounded-xl shadow-sm overflow-hidden" 
                      style="display: none;">
 
-                    <!-- Header Konten dengan Background Subtle -->
                     <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 border-b border-blue-100">
                         <div class="flex items-center">
                             <div class="bg-blue-100 rounded-full p-3 mr-4">
@@ -169,7 +142,6 @@
                     </div>
                 </div>
 
-                <!-- Panel Konten: Hapus Akun -->
                 <div x-show="activeTab === 'delete'"
                      x-transition:enter="transition ease-out duration-300"
                      x-transition:enter-start="opacity-0 transform translate-y-4"
@@ -177,7 +149,6 @@
                      class="bg-white rounded-xl shadow-sm overflow-hidden" 
                      style="display: none;">
 
-                    <!-- Header Konten dengan Background Subtle -->
                     <div class="bg-gradient-to-r from-red-50 to-pink-50 p-6 border-b border-red-100">
                         <div class="flex items-center">
                             <div class="bg-red-100 rounded-full p-3 mr-4">
@@ -194,7 +165,6 @@
 
                     <div class="p-6 sm:p-8">
                         <div class="max-w-2xl">
-                            <!-- Alert Box untuk Peringatan -->
                             <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-6">
                                 <div class="flex">
                                     <div class="flex-shrink-0">
