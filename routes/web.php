@@ -16,6 +16,7 @@ use App\Http\Controllers\PembayaranController;
 use App\Http\Controllers\PengaturanController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\LaporanPendapatanController;
+use App\Http\Controllers\VoucherController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -59,6 +60,9 @@ Route::middleware('auth')->group(function () {
 
     Route::get('transaksi', [TransaksiController::class, 'index'])->name('transaksi.index');
     Route::get('transaksi/{transaksi}', [TransaksiController::class, 'show'])->name('transaksi.show');
+
+    Route::post('pos/check-voucher', [PosController::class, 'checkVoucher'])->name('pos.check_voucher');
+
 
 
     // ===========================================
@@ -104,7 +108,12 @@ Route::middleware('auth')->group(function () {
 
         Route::get('laporan/pendapatan', [LaporanPendapatanController::class, 'index'])->name('laporan.pendapatan');
 
+        Route::post('vouchers', [App\Http\Controllers\VoucherController::class, 'store'])->name('vouchers.store');
+        Route::delete('vouchers/{id}', [App\Http\Controllers\VoucherController::class, 'destroy'])->name('vouchers.destroy');
+        Route::patch('vouchers/{id}/toggle', [App\Http\Controllers\VoucherController::class, 'toggleStatus'])->name('vouchers.toggle');
+
         Route::resource('users', UserController::class);
+          Route::patch('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
 
     }); 
     

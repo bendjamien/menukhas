@@ -10,6 +10,7 @@ use App\Models\TransaksiDetail;
 use App\Models\StokLog;
 use App\Models\Pembayaran;
 use App\Models\Setting;
+use App\Models\Voucher;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -289,4 +290,34 @@ class PosController extends Controller
                              ->with('toast_danger', 'Terjadi kesalahan! Transaksi gagal disimpan. ' . $e->getMessage());
         }
     }
+
+    public function checkVoucher(Request $request)
+    {
+        $code = $request->input('voucher_code');
+        $subtotal = $request->input('subtotal');
+
+        $voucher = Voucher::where('kode', $code)->where('is_active', true)->first();
+
+        if (!$voucher) {
+            return response()->json(['valid' => false, 'message' => 'Kode voucher tidak ditemukan atau tidak aktif.']);
+        }
+
+        $discountAmount = 0;
+        if ($voucher->tipe == 'nominal') {
+            $discountAmount = $voucher->nilai;
+        } else {
+            $discountAmount = $subtotal * ($voucher->nilai / 100);
+        }
+
+        if ($discountAmount > $subtotal) {
+            $discountAmount = $subtotal;
+        }
+
+        return response()->json([
+            'valid' => true,
+            'discount_amount' => $discountAmount,
+            'message' => 'Voucher berhasil digunakan!'
+        ]);
+    }
+
 }

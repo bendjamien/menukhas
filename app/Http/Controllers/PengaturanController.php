@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Setting;
+use App\Models\Voucher; 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Redirect;
 
@@ -32,7 +33,9 @@ class PengaturanController extends Controller
             }
         }
 
-        return view('pengaturan.index', ['settings' => $settings]);
+        $vouchers = Voucher::orderBy('id', 'desc')->get();
+
+        return view('pengaturan.index', compact('settings', 'vouchers'));
     }
 
     public function update(Request $request)
@@ -59,6 +62,7 @@ class PengaturanController extends Controller
             );
 
             Cache::forget($key);
+            Cache::forget('all_settings'); 
         }
 
         return Redirect::route('pengaturan.index')

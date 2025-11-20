@@ -5,12 +5,12 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Auth; 
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 class UserController extends Controller
 {
-
     public function index()
     {
         $users = User::paginate(10);
@@ -78,13 +78,18 @@ class UserController extends Controller
         return redirect()->route('users.index')->with('toast_success', 'Data user berhasil diperbarui!');
     }
 
-    public function destroy(User $user)
+
+    public function toggleStatus(User $user)
     {
         if ($user->id == Auth::id()) {
-            return redirect()->route('users.index')->with('toast_danger', 'Anda tidak bisa menghapus akun Anda sendiri.');
+            return redirect()->back()->with('toast_danger', 'Anda tidak bisa menonaktifkan akun sendiri.');
         }
+
+        $user->status = !$user->status;
+        $user->save();
+
+        $statusMsg = $user->status ? 'diaktifkan kembali.' : 'dinonaktifkan.';
         
-        $user->delete();
-        return redirect()->route('users.index')->with('toast_danger', 'User berhasil dihapus.');
+        return redirect()->back()->with('toast_success', 'Akun ' . $user->name . ' berhasil ' . $statusMsg);
     }
 }
