@@ -21,18 +21,13 @@
 </head>
 <body class="antialiased text-gray-800">
 
-    <!-- Hero Section -->
     <div class="hero-bg min-h-screen flex items-center justify-center relative">
-        <!-- Overlay Gelap -->
         <div class="absolute inset-0 bg-black/40"></div>
 
-        <!-- Kartu Utama -->
         <div class="relative z-10 w-full max-w-4xl mx-4 md:mx-0 flex flex-col md:flex-row glass-card rounded-2xl shadow-2xl overflow-hidden">
             
-            <!-- Bagian Kiri: Logo & Intro -->
             <div class="w-full md:w-1/2 p-10 md:p-12 flex flex-col justify-center bg-white">
                 <div class="mb-6">
-                    <!-- Ganti src dengan logo Anda jika ada -->
                     <div class="w-16 h-16 bg-sky-500 rounded-xl flex items-center justify-center shadow-lg mb-4">
                         <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                     </div>
@@ -58,14 +53,12 @@
                     @endif
                     
                     <div class="text-center text-sm text-gray-400 mt-4">
-                        &copy; {{ date('Y') }} MenuKhas POS System
+                        &copy; {{ date('Y') }} Rubi Dev-MenuKhas
                     </div>
                 </div>
             </div>
 
-            <!-- Bagian Kanan: Gambar / Ilustrasi -->
             <div class="hidden md:flex w-1/2 bg-sky-50 items-center justify-center p-12 relative overflow-hidden">
-                <!-- Dekorasi Lingkaran -->
                 <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-sky-100 mix-blend-multiply filter blur-xl opacity-70 animate-blob"></div>
                 <div class="absolute -bottom-8 left-10 w-72 h-72 rounded-full bg-blue-100 mix-blend-multiply filter blur-xl opacity-70 animate-blob animation-delay-2000"></div>
                 

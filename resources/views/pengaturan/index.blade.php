@@ -20,7 +20,7 @@
                 </div>
 
                 <div class="bg-white p-6 rounded-lg shadow-md">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Info Struk</h2>
+                    <h2 class="text-xl font-semibold text-gray-800 mb-4">Info Toko</h2>
                     <div class="space-y-3">
                         <div>
                             <label class="block text-xs font-medium text-gray-500">Nama Bisnis</label>
@@ -45,7 +45,7 @@
             </div>
 
             <div class="mt-4 flex justify-end">
-                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition">
+                <button type="submit" class="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition">
                     Simpan Pengaturan Umum
                 </button>
             </div>
@@ -75,7 +75,7 @@
                         <input type="number" name="nilai" placeholder="Cth: 10000 atau 10" class="block w-full rounded-md border-gray-300 shadow-sm focus:ring-green-500 focus:border-green-500" required>
                     </div>
                     <div class="w-full md:w-auto">
-                        <button type="submit" class="w-full bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 font-semibold shadow-sm">
+                        <button type="submit" class="w-full bg-sky-500 text-white px-6 py-2 rounded-md hover:bg-sky-700 font-semibold shadow-sm">
                             + Tambah Voucher
                         </button>
                     </div>
@@ -95,7 +95,7 @@
                     <tbody class="bg-white divide-y divide-gray-200">
                         @forelse($vouchers as $voucher)
                         <tr>
-                            <td class="px-4 py-3 whitespace-nowrap font-mono font-bold text-indigo-600 text-lg">{{ $voucher->kode }}</td>
+                            <td class="px-4 py-3 whitespace-nowrap font-mono font-bold text-sky-600 text-lg">{{ $voucher->kode }}</td>
                             <td class="px-4 py-3 whitespace-nowrap font-medium text-gray-800">
                                 {{ $voucher->tipe == 'nominal' ? 'Rp '.number_format($voucher->nilai, 0, ',', '.') : $voucher->nilai . '%' }}
                             </td>

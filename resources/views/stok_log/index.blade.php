@@ -5,7 +5,7 @@
             
             @if(Auth::user()->role == 'admin')
                 <a href="{{ route('stok_log.create') }}" 
-                   class="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200">
+                   class="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200">
                     + Catat Stok Masuk
                 </a>
             @endif

@@ -225,7 +225,7 @@
                                     <input type="text" x-model="voucherCode" :disabled="voucherApplied"
                                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 uppercase" 
                                            placeholder="KODE...">
-                                    <button type="button" x-show="!voucherApplied" @click="applyVoucher()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-xs font-bold">CEK</button>
+                                    <button type="button" x-show="!voucherApplied" @click="applyVoucher()" class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-2 rounded-lg text-xs font-bold">CEK</button>
                                     <button type="button" x-show="voucherApplied" @click="resetVoucher()" class="bg-red-100 hover:bg-red-200 text-red-600 px-3 py-2 rounded-lg text-xs font-bold">HAPUS</button>
                                 </div>
                                 <p class="text-xs" :class="voucherApplied ? 'text-green-600' : 'text-red-500'" x-text="voucherMessage"></p>
@@ -243,12 +243,12 @@
                             
                             <div class="flex justify-between items-center pt-4 border-t border-gray-300">
                                 <span class="text-base font-bold text-gray-800">Total Tagihan</span>
-                                <span class="text-xl font-bold text-indigo-600" x-text="'Rp ' + new Intl.NumberFormat('id-ID').format(grandTotal)"></span>
+                                <span class="text-xl font-bold text-sky-600" x-text="'Rp ' + new Intl.NumberFormat('id-ID').format(grandTotal)"></span>
                             </div>
                         </div>
 
                         <button type="button" @click="handlePayment()"
-                            class="w-full mt-6 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-indigo-200 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                            class="w-full mt-6 bg-gradient-to-r from-sky-600 to-sky-600 hover:from-sky-700 hover:to-sky-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg shadow-indigo-200 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                             :disabled="nominalBayar < grandTotal && paymentCategory == 'Tunai'">
                             <span x-text="paymentCategory === 'Tunai' ? 'Bayar Tunai Sekarang' : 'Lanjut Pembayaran'"></span>
                         </button>

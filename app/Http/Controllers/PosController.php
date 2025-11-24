@@ -57,8 +57,8 @@ class PosController extends Controller
         $activeDraft->load(['details.produk', 'pelanggan', 'kasir']);
 
         $pendingDraftsQuery = Transaksi::with(['details', 'pelanggan', 'kasir'])
-                                  ->where('status', 'draft')
-                                  ->where('id', '!=', $activeDraft->id);
+                                      ->where('status', 'draft')
+                                      ->where('id', '!=', $activeDraft->id);
         
         if ($user->role == 'kasir') {
             $pendingDraftsQuery->where('kasir_id', $kasirId);
@@ -119,7 +119,17 @@ class PosController extends Controller
         $produk = Produk::find($validated['produk_id']);
         $transaksi = Transaksi::find($validated['transaksi_id']);
 
+        if ($produk->stok <= 0) {
+            return redirect()->back()->with('toast_danger', 'Stok barang kosong, tidak bisa dipilih.');
+        }
+
         $item = $transaksi->details()->where('produk_id', $produk->id)->first();
+
+        $jumlahDiKeranjang = $item ? $item->jumlah : 0;
+        
+        if (($jumlahDiKeranjang + 1) > $produk->stok) {
+            return redirect()->back()->with('toast_danger', 'Stok tidak mencukupi! Sisa stok hanya: ' . $produk->stok);
+        }
 
         if ($item) {
             $item->jumlah++;
@@ -147,6 +157,11 @@ class PosController extends Controller
         ]);
 
         $item = TransaksiDetail::find($validated['transaksi_detail_id']);
+        
+        if ($validated['qty'] > $item->produk->stok) {
+            return redirect()->back()->with('toast_danger', 'Jumlah melebihi stok tersedia! Sisa: ' . $item->produk->stok);
+        }
+
         $item->jumlah = $validated['qty'];
         $item->subtotal = $item->jumlah * $item->harga_satuan;
         $item->save();
@@ -265,6 +280,11 @@ class PosController extends Controller
                 ]);
                 foreach ($transaksi->details as $item) {
                     $produk = $item->produk;
+                    
+                    if($produk->stok < $item->jumlah) {
+                         throw new \Exception("Stok produk {$produk->nama_produk} tidak mencukupi untuk checkout.");
+                    }
+
                     $produk->decrement('stok', $item->jumlah);
                     StokLog::create([
                         'produk_id' => $produk->id,

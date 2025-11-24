@@ -64,12 +64,12 @@
                             <div class="h-8 w-px bg-gray-200 hidden lg:block"></div>
 
                             <div class="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-full border border-gray-200/60 shadow-sm">
-                                <div class="bg-indigo-100 p-1.5 rounded-full text-indigo-600">
+                                <div class="bg-indigo-100 p-1.5 rounded-full text-sky-600">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                 </div>
                                 <div>
                                     <p class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider leading-none" x-text="date"></p>
-                                    <p class="text-xl font-bold text-indigo-600 leading-none font-mono mt-0.5" x-text="time"></p>
+                                    <p class="text-xl font-bold text-sky-600 leading-none font-mono mt-0.5" x-text="time"></p>
                                 </div>
                             </div>
                         </div>
