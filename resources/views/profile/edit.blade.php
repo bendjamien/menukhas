@@ -1,7 +1,7 @@
 <x-app-layout>
     <div class="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
         
-        <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-6 mb-8 shadow-lg">
+        <div class="bg-gradient-to-r from-sky-600 to-sky-600 rounded-xl p-6 mb-8 shadow-lg">
             <h1 class="text-2xl sm:text-3xl font-bold text-white">
                 Pengaturan Profil
             </h1>

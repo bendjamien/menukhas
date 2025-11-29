@@ -16,6 +16,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use Carbon\Carbon;
+use Midtrans\Config;
+use Midtrans\Snap;
 
 class PosController extends Controller
 {
@@ -23,66 +25,49 @@ class PosController extends Controller
     {
         $user = Auth::user();
         $kasirId = $user->id;
-
         $activeDraft = null;
 
-        if ($transaksi && $transaksi->exists) { 
-            
+        if ($transaksi && $transaksi->exists) {
             if ($user->role == 'admin') {
-                if ($transaksi->status == 'draft') {
-                    $activeDraft = $transaksi;
-                }
+                if ($transaksi->status == 'draft') $activeDraft = $transaksi;
             } else {
-                if ($transaksi->status == 'draft' && $transaksi->kasir_id == $kasirId) {
-                    $activeDraft = $transaksi;
-                }
+                if ($transaksi->status == 'draft' && $transaksi->kasir_id == $kasirId) $activeDraft = $transaksi;
             }
-            
-            if (!$activeDraft) {
-                 return redirect()->route('pos.index')->with('toast_danger', 'Draft tidak valid atau bukan milik Anda.');
-            }
-
+            if (!$activeDraft) return redirect()->route('pos.index')->with('toast_danger', 'Draft tidak valid.');
         } else {
-
             $activeDraft = Transaksi::where('kasir_id', $kasirId)
-                                    ->where('status', 'draft')
-                                    ->latest('tanggal')
-                                    ->first();
+                ->where('status', 'draft')
+                ->latest('tanggal')
+                ->first();
         }
 
-        if (!$activeDraft) {
-            $activeDraft = $this->createEmptyDraft($kasirId);
-        }
+        if (!$activeDraft) $activeDraft = $this->createEmptyDraft($kasirId);
 
         $activeDraft->load(['details.produk', 'pelanggan', 'kasir']);
 
         $pendingDraftsQuery = Transaksi::with(['details', 'pelanggan', 'kasir'])
-                                      ->where('status', 'draft')
-                                      ->where('id', '!=', $activeDraft->id);
+            ->where('status', 'draft')
+            ->where('id', '!=', $activeDraft->id);
         
         if ($user->role == 'kasir') {
             $pendingDraftsQuery->where('kasir_id', $kasirId);
         }
-        
         $pendingDrafts = $pendingDraftsQuery->latest('tanggal')->get();
 
         $search = $request->query('search');
-        $produksQuery = Produk::with('kategori');
+        $produksQuery = Produk::with('kategori')->where('stok', '>', 0); 
+        
         if ($search) {
-            $produksQuery->where('nama_produk', 'like', "%{$search}%")
-                         ->orWhere('kode_barcode', 'like', "%{$search}%");
+            $produksQuery->where(function($q) use ($search) {
+                $q->where('nama_produk', 'like', "%{$search}%")
+                  ->orWhere('kode_barcode', 'like', "%{$search}%");
+            });
         }
-        $produks = $produksQuery->orderBy('nama_produk', 'asc')->get();
+        $produks = $produksQuery->orderBy('nama_produk', 'asc')->limit(50)->get();
         
         $pelanggans = Pelanggan::orderBy('nama', 'asc')->get();
 
-        return view('pos.index', compact(
-            'produks', 
-            'pelanggans', 
-            'activeDraft',
-            'pendingDrafts', 
-            'search'
-        ));
+        return view('pos.index', compact('produks', 'pelanggans', 'activeDraft', 'pendingDrafts', 'search'));
     }
 
     private function createEmptyDraft($kasirId)
@@ -98,7 +83,7 @@ class PosController extends Controller
     private function recalculateTransactionTotal(Transaksi $transaksi)
     {
         $subtotal = $transaksi->details()->sum(DB::raw('harga_satuan * jumlah'));
-        $transaksi->total = $subtotal;
+        $transaksi->total = $subtotal; 
         $transaksi->save();
     }
 
@@ -106,42 +91,39 @@ class PosController extends Controller
     {
         $newDraft = $this->createEmptyDraft(Auth::id());
         return redirect()->route('pos.index', ['transaksi' => $newDraft->id])
-                         ->with('toast_success', 'Transaksi baru dibuat. (Draft sebelumnya ditahan)');
+            ->with('toast_success', 'Draft baru dibuat.');
     }
 
     public function addItem(Request $request)
     {
         $validated = $request->validate([
-            'produk_id' => 'required|integer|exists:produk,id',
-            'transaksi_id' => 'required|integer|exists:transaksi,id',
+            'produk_id' => 'required|exists:produk,id',
+            'transaksi_id' => 'required|exists:transaksi,id',
         ]);
 
         $produk = Produk::find($validated['produk_id']);
         $transaksi = Transaksi::find($validated['transaksi_id']);
 
         if ($produk->stok <= 0) {
-            return redirect()->back()->with('toast_danger', 'Stok barang kosong, tidak bisa dipilih.');
+            return back()->with('toast_danger', 'Stok habis!');
         }
 
         $item = $transaksi->details()->where('produk_id', $produk->id)->first();
-
         $jumlahDiKeranjang = $item ? $item->jumlah : 0;
-        
+
         if (($jumlahDiKeranjang + 1) > $produk->stok) {
-            return redirect()->back()->with('toast_danger', 'Stok tidak mencukupi! Sisa stok hanya: ' . $produk->stok);
+            return back()->with('toast_danger', 'Stok tidak cukup. Sisa: ' . $produk->stok);
         }
 
         if ($item) {
-            $item->jumlah++;
-            $item->subtotal = $item->jumlah * $item->harga_satuan;
-            $item->save();
+            $item->increment('jumlah');
+            $item->update(['subtotal' => $item->jumlah * $item->harga_satuan]);
         } else {
             $transaksi->details()->create([
                 'produk_id' => $produk->id,
                 'jumlah' => 1,
                 'harga_satuan' => $produk->harga_jual,
-                'diskon_item' => 0,
-                'subtotal' => $produk->harga_jual * 1,
+                'subtotal' => $produk->harga_jual,
             ]);
         }
 
@@ -152,192 +134,338 @@ class PosController extends Controller
     public function updateItem(Request $request)
     {
         $validated = $request->validate([
-            'transaksi_detail_id' => 'required|integer|exists:transaksi_detail,id',
+            'transaksi_detail_id' => 'required|exists:transaksi_detail,id',
             'qty' => 'required|integer|min:1',
         ]);
 
         $item = TransaksiDetail::find($validated['transaksi_detail_id']);
         
         if ($validated['qty'] > $item->produk->stok) {
-            return redirect()->back()->with('toast_danger', 'Jumlah melebihi stok tersedia! Sisa: ' . $item->produk->stok);
+            return back()->with('toast_danger', 'Melebihi stok! Sisa: ' . $item->produk->stok);
         }
 
-        $item->jumlah = $validated['qty'];
-        $item->subtotal = $item->jumlah * $item->harga_satuan;
-        $item->save();
+        $item->update([
+            'jumlah' => $validated['qty'],
+            'subtotal' => $validated['qty'] * $item->harga_satuan
+        ]);
 
         $this->recalculateTransactionTotal($item->transaksi);
-        return redirect()->back();
+        return back();
     }
 
     public function removeItem(Request $request)
     {
-        $validated = $request->validate([
-            'transaksi_detail_id' => 'required|integer|exists:transaksi_detail,id',
-        ]);
-
-        $item = TransaksiDetail::find($validated['transaksi_detail_id']);
+        $item = TransaksiDetail::findOrFail($request->transaksi_detail_id);
         $transaksi = $item->transaksi;
         $item->delete();
         $this->recalculateTransactionTotal($transaksi);
-
-        return redirect()->back();
+        return back();
     }
 
     public function saveCustomerToDraft(Request $request)
     {
-        $validated = $request->validate([
-            'transaksi_id' => 'required|integer|exists:transaksi,id',
-            'pelanggan_id' => 'nullable|integer|exists:pelanggan,id',
-        ]);
+        $transaksi = Transaksi::findOrFail($request->transaksi_id);
+        $pelangganId = null;
 
-        $transaksi = Transaksi::find($validated['transaksi_id']);
-        $transaksi->pelanggan_id = $validated['pelanggan_id'];
-        $transaksi->save();
+        if ($request->filled('nama_pelanggan_baru')) {
+            $namaBaru = $request->nama_pelanggan_baru;
+            
+            $existing = Pelanggan::where('nama', $namaBaru)->first();
+            
+            if ($existing) {
+                $pelangganId = $existing->id;
+            } else {
+                $newPelanggan = Pelanggan::create([
+                    'nama' => $namaBaru,
+                    'no_hp' => '-',      
+                    'alamat' => '-',     
+                    'email' => null,     
+                    'member_level' => 'Regular'
+                ]);
+                $pelangganId = $newPelanggan->id;
+            }
+        } 
+        elseif ($request->filled('pelanggan_id')) {
+            $pelangganId = $request->pelanggan_id;
+        }
 
-        return redirect()->back();
+        $transaksi->update(['pelanggan_id' => $pelangganId]);
+        
+        $namaPelanggan = $transaksi->pelanggan->nama ?? 'Pelanggan Umum';
+
+        return back()->with('toast_success', "Pelanggan diatur ke: $namaPelanggan");
     }
 
     public function cancelDraft(Request $request)
     {
-        $validated = $request->validate([
-            'transaksi_id' => 'required|integer|exists:transaksi,id',
-        ]);
-
-        $transaksi = Transaksi::find($validated['transaksi_id']);
+        $transaksi = Transaksi::findOrFail($request->transaksi_id);
         if ($transaksi->status == 'draft') {
+            $transaksi->details()->delete(); 
             $transaksi->delete();
         }
-
-        return redirect()->route('pos.index')
-                         ->with('toast_danger', 'Transaksi draft telah dibatalkan.');
+        return redirect()->route('pos.index')->with('toast_danger', 'Draft dihapus.');
     }
 
-    public function showCheckoutForm(Request $request, Transaksi $transaksi)
+    public function showCheckoutForm(Transaksi $transaksi)
     {
-        if ($transaksi->status != 'draft') {
-            return redirect()->route('pos.index')->with('toast_danger', 'Transaksi ini sudah selesai.');
-        }
-        $transaksi->load(['details.produk', 'pelanggan']);
-        if ($transaksi->details->isEmpty()) {
-            return redirect()->route('pos.index', ['transaksi' => $transaksi->id])
-                             ->with('toast_danger', 'Keranjang kosong, tidak bisa checkout.');
-        }
+        if ($transaksi->status != 'draft') return redirect()->route('pos.index');
+        
         $subtotal = $transaksi->details->sum('subtotal');
-        $taxRate = Cache::rememberForever('ppn_tax_rate', function () {
-            $setting = Setting::firstOrCreate(['key' => 'ppn_tax_rate'], ['value' => '0.11']);
-            return (float) $setting->value;
-        });
+        if ($subtotal <= 0) return back()->with('toast_danger', 'Keranjang kosong!');
+
+        $taxRate = Cache::rememberForever('ppn_tax_rate', fn() => Setting::where('key','ppn_tax_rate')->value('value') ?? 0.11);
+
         return view('pos.checkout', [
             'transaksi' => $transaksi,
             'cart' => $transaksi->details,
             'pelanggan' => $transaksi->pelanggan,
             'subtotal' => $subtotal,
-            'taxRate' => $taxRate
+            'taxRate' => (float)$taxRate
+        ]);
+    }
+
+    public function checkVoucher(Request $request)
+    {
+        $code = $request->voucher_code;
+        $subtotal = $request->subtotal;
+        
+        $voucher = Voucher::where('kode', $code)->where('is_active', true)->first();
+
+        if (!$voucher) {
+            return response()->json(['valid' => false, 'message' => 'Voucher tidak valid']);
+        }
+        
+        $disc = ($voucher->tipe == 'nominal') ? $voucher->nilai : ($subtotal * $voucher->nilai / 100);
+        if ($disc > $subtotal) $disc = $subtotal;
+
+        return response()->json([
+            'valid' => true, 
+            'discount_amount' => $disc, 
+            'message' => 'Voucher diterapkan!'
         ]);
     }
 
     public function storeCheckout(Request $request, Transaksi $transaksi)
     {
-        $validated = $request->validate([
-            'metode_bayar' => 'required|string|max:50',
+        $request->validate([
+            'metode_bayar' => 'required|string', 
             'nominal_bayar' => 'required|numeric|min:0',
-            'diskon_amount' => 'required|numeric|min:0',
+            'voucher_code'  => 'nullable|string|exists:vouchers,kode', 
         ]);
-        $transaksi->load('details');
-        if ($transaksi->details->isEmpty()) {
-            return redirect()->route('pos.index')->with('toast_danger', 'Keranjang kosong!');
-        }
+
         $subtotal = $transaksi->details->sum('subtotal');
-        $diskon = $validated['diskon_amount'];
-        if ($diskon > $subtotal) {
-            return redirect()->back()->withErrors(['diskon_amount' => 'Diskon tidak boleh melebihi subtotal.']);
+        if ($subtotal == 0) return back()->with('toast_danger', 'Keranjang kosong!');
+
+        $diskon = 0;
+        if ($request->voucher_code) {
+            $voucher = Voucher::where('kode', $request->voucher_code)->first();
+            if ($voucher && $voucher->is_active) {
+                $diskon = ($voucher->tipe == 'nominal') ? $voucher->nilai : ($subtotal * $voucher->nilai / 100);
+                if ($diskon > $subtotal) $diskon = $subtotal;
+            }
         }
-        $taxRate = Cache::rememberForever('ppn_tax_rate', function () {
-            $setting = Setting::firstOrCreate(['key' => 'ppn_tax_rate'], ['value' => '0.11']);
-            return (float) $setting->value;
-        });
+
+        $taxRate = Cache::rememberForever('ppn_tax_rate', fn() => 0.11);
         $totalSetelahDiskon = $subtotal - $diskon;
         $pajak = $totalSetelahDiskon * $taxRate;
-        $grandTotal = $totalSetelahDiskon + $pajak;
-        if ($validated['metode_bayar'] == 'Tunai' && $validated['nominal_bayar'] < $grandTotal) {
-            return redirect()->back()->withErrors(['nominal_bayar' => 'Nominal bayar tunai kurang dari Grand Total.']);
-        }
-        try {
-            $kasirId = Auth::id();
-            $tanggalSekarang = Carbon::now('Asia/Jakarta');
-            DB::transaction(function () use ($validated, $grandTotal, $diskon, $pajak, $transaksi, $kasirId, $tanggalSekarang) {
-                $transaksi->update([
-                    'tanggal' => $tanggalSekarang,
-                    'kasir_id' => $kasirId,
-                    'total' => $grandTotal,
-                    'diskon' => $diskon,
-                    'pajak' => $pajak,
-                    'metode_bayar' => $validated['metode_bayar'],
-                    'nominal_bayar' => $validated['nominal_bayar'],
-                    'kembalian' => $validated['nominal_bayar'] - $grandTotal,
-                    'status' => 'selesai',
-                ]);
-                foreach ($transaksi->details as $item) {
-                    $produk = $item->produk;
-                    
-                    if($produk->stok < $item->jumlah) {
-                         throw new \Exception("Stok produk {$produk->nama_produk} tidak mencukupi untuk checkout.");
-                    }
+        $grandTotal = round($totalSetelahDiskon + $pajak);
 
-                    $produk->decrement('stok', $item->jumlah);
-                    StokLog::create([
-                        'produk_id' => $produk->id,
-                        'tanggal' => $tanggalSekarang,
-                        'tipe' => 'keluar',
-                        'jumlah' => $item->jumlah,
-                        'sumber' => 'Penjualan',
-                        'keterangan' => 'Penjualan via POS, Transaksi #' . $transaksi->id,
-                        'user_id' => $kasirId,
-                    ]);
+        if ($request->metode_bayar == 'Tunai' && $request->nominal_bayar < $grandTotal) {
+            return back()->withErrors(['nominal_bayar' => 'Uang tunai kurang!']);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $isTunai = ($request->metode_bayar == 'Tunai');
+            $statusAwal = $isTunai ? 'selesai' : 'pending'; 
+            
+            $orderIdMidtrans = 'POS-' . $transaksi->id . '-' . time();
+
+            $transaksi->update([
+                'tanggal' => Carbon::now('Asia/Jakarta'),
+                'kasir_id' => Auth::id(),
+                'total' => $grandTotal,
+                'diskon' => $diskon,
+                'pajak' => $pajak,
+                'metode_bayar' => $request->metode_bayar, 
+                'nominal_bayar' => $request->nominal_bayar, 
+                'kembalian' => $isTunai ? ($request->nominal_bayar - $grandTotal) : 0,
+                'status' => $statusAwal,
+                'catatan' => $orderIdMidtrans 
+            ]);
+
+            foreach ($transaksi->details as $item) {
+                if ($item->produk->stok < $item->jumlah) {
+                    throw new \Exception("Stok {$item->produk->nama_produk} tidak cukup!");
                 }
+                
+                $item->produk->decrement('stok', $item->jumlah);
+                
+                StokLog::create([
+                    'produk_id' => $item->produk_id,
+                    'tanggal' => Carbon::now(),
+                    'tipe' => 'keluar',
+                    'jumlah' => $item->jumlah,
+                    'sumber' => 'Penjualan',
+                    'keterangan' => 'Trx #' . $transaksi->id,
+                    'user_id' => Auth::id()
+                ]);
+            }
+
+            if ($isTunai) {
                 Pembayaran::create([
                     'transaksi_id' => $transaksi->id,
-                    'metode' => $validated['metode_bayar'],
+                    'metode' => 'Tunai',
                     'jumlah' => $grandTotal,
-                    'referensi' => 'Selesai via POS',
+                    'referensi' => 'Cashier'
                 ]);
-            });
-            return redirect()->route('transaksi.show', $transaksi)
-                             ->with('toast_success', 'Transaksi berhasil disimpan!');
+                DB::commit();
+                return redirect()->route('transaksi.show', $transaksi)->with('toast_success', 'Transaksi Selesai!');
+            }
+
+            // --- PERBAIKAN: MENGGUNAKAN ENV() AGAR TIDAK HARDCODE ---
+            Config::$serverKey = env('MIDTRANS_SERVER_KEY'); 
+            Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
+            Config::$isSanitized = true;
+            Config::$is3ds = true;
+
+            $params = [
+                'transaction_details' => [
+                    'order_id' => $orderIdMidtrans,
+                    'gross_amount' => (int)$grandTotal,
+                ],
+                'customer_details' => [
+                    'first_name' => $transaksi->pelanggan ? $transaksi->pelanggan->nama : 'Guest',
+                    'email' => $transaksi->pelanggan->email ?? 'customer@pos.com', // Menggunakan email pelanggan jika ada
+                ],
+                'item_details' => [
+                    [
+                        'id' => 'TRX-' . $transaksi->id,
+                        'price' => (int)$grandTotal,
+                        'quantity' => 1,
+                        'name' => 'Pembayaran Kasir POS'
+                    ]
+                ]
+            ];
+
+            $snapToken = Snap::getSnapToken($params);
+            
+            DB::commit();
+
+            return view('pos.midtrans-pay', compact('snapToken', 'transaksi'));
+
         } catch (\Exception $e) {
-            return redirect()->route('pos.index')
-                             ->with('toast_danger', 'Terjadi kesalahan! Transaksi gagal disimpan. ' . $e->getMessage());
+            DB::rollBack();
+            return back()->with('toast_danger', 'Gagal memproses: ' . $e->getMessage());
         }
     }
 
-    public function checkVoucher(Request $request)
+    public function midtransCallback(Request $request)
     {
-        $code = $request->input('voucher_code');
-        $subtotal = $request->input('subtotal');
+        // --- PERBAIKAN: MENGGUNAKAN ENV() ---
+        $serverKey = env('MIDTRANS_SERVER_KEY'); 
+        
+        $hashed = hash("sha512", $request->order_id . $request->status_code . $request->gross_amount . $serverKey);
 
-        $voucher = Voucher::where('kode', $code)->where('is_active', true)->first();
+        if ($hashed == $request->signature_key) {
+            $parts = explode('-', $request->order_id);
+            $transaksiId = $parts[1] ?? null;
 
-        if (!$voucher) {
-            return response()->json(['valid' => false, 'message' => 'Kode voucher tidak ditemukan atau tidak aktif.']);
+            if (!$transaksiId) return response()->json(['message' => 'Invalid Order ID'], 400);
+
+            $transaksi = Transaksi::find($transaksiId);
+            if (!$transaksi) return response()->json(['message' => 'Not Found'], 404);
+
+            $status = $request->transaction_status;
+            $type = $request->payment_type;
+            
+            if ($status == 'capture' || $status == 'settlement') {
+                if ($transaksi->status != 'selesai') {
+                    $transaksi->update([
+                        'status' => 'selesai',
+                        'metode_bayar' => $type 
+                    ]);
+                    
+                    Pembayaran::create([
+                        'transaksi_id' => $transaksi->id,
+                        'metode' => $type,
+                        'jumlah' => $request->gross_amount,
+                        'referensi' => $request->transaction_id
+                    ]);
+                }
+            } else if ($status == 'cancel' || $status == 'expire' || $status == 'deny') {
+                
+                if ($transaksi->status != 'batal') {
+                    $transaksi->update(['status' => 'batal']);
+                    foreach ($transaksi->details as $item) {
+                        $item->produk->increment('stok', $item->jumlah);
+                        
+                        StokLog::create([
+                            'produk_id' => $item->produk_id,
+                            'tanggal' => Carbon::now(),
+                            'tipe' => 'masuk',
+                            'jumlah' => $item->jumlah,
+                            'sumber' => 'Pembatalan',
+                            'keterangan' => 'Batal System Trx #' . $transaksi->id,
+                            'user_id' => 0 
+                        ]);
+                    }
+                }
+            }
         }
 
-        $discountAmount = 0;
-        if ($voucher->tipe == 'nominal') {
-            $discountAmount = $voucher->nilai;
-        } else {
-            $discountAmount = $subtotal * ($voucher->nilai / 100);
-        }
-
-        if ($discountAmount > $subtotal) {
-            $discountAmount = $subtotal;
-        }
-
-        return response()->json([
-            'valid' => true,
-            'discount_amount' => $discountAmount,
-            'message' => 'Voucher berhasil digunakan!'
-        ]);
+        return response()->json(['status' => 'ok']);
     }
 
+    public function handlePaymentSuccess(Transaksi $transaksi)
+    {
+        if ($transaksi->status == 'pending') {
+            $transaksi->update(['status' => 'selesai']);
+            
+            Pembayaran::create([
+                'transaksi_id' => $transaksi->id,
+                'metode' => 'Midtrans (Redirect)',
+                'jumlah' => $transaksi->total,
+                'referensi' => 'Local-Success'
+            ]);
+        }
+
+        return redirect()->route('pos.index')->with('toast_success', 'Pembayaran Berhasil!');
+    }
+
+    public function cancelPendingTransaction(Transaksi $transaksi)
+    {
+        if ($transaksi->status == 'pending') {
+            
+            try {
+                DB::beginTransaction();
+
+                foreach ($transaksi->details as $item) {
+                    $item->produk->increment('stok', $item->jumlah);
+
+                    StokLog::create([
+                        'produk_id' => $item->produk_id,
+                        'tanggal' => Carbon::now(),
+                        'tipe' => 'masuk',
+                        'jumlah' => $item->jumlah,
+                        'sumber' => 'Pembatalan',
+                        'keterangan' => 'Batal Manual Kasir Trx #' . $transaksi->id,
+                        'user_id' => Auth::id()
+                    ]);
+                }
+
+                $transaksi->update(['status' => 'batal']);
+
+                DB::commit();
+                return redirect()->route('pos.index')->with('toast_danger', 'Transaksi berhasil dibatalkan!');
+
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return redirect()->route('pos.index')->with('toast_danger', 'Gagal membatalkan: ' . $e->getMessage());
+            }
+        }
+
+        return redirect()->route('pos.index');
+    }
 }

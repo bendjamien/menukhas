@@ -48,6 +48,7 @@ Route::get('/dashboard', function () {
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 
+
 Route::middleware('auth')->group(function () {
     
     // ===========================================
@@ -55,6 +56,8 @@ Route::middleware('auth')->group(function () {
     // ===========================================
 
     Route::post('/chat-ai', [ChatController::class, 'sendMessage'])->name('chat.send');
+    Route::post('/midtrans-callback', [App\Http\Controllers\PosController::class, 'midtransCallback']);
+
 
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -91,6 +94,9 @@ Route::middleware('auth')->group(function () {
     
     Route::post('pos/checkout/{transaksi}', [PosController::class, 'storeCheckout'])->name('pos.checkout.store');
     
+    Route::get('pos/payment-success/{transaksi}', [PosController::class, 'handlePaymentSuccess'])->name('pos.payment_success');
+
+    Route::get('pos/cancel-pending/{transaksi}', [PosController::class, 'cancelPendingTransaction'])->name('pos.cancel_pending');
 
     
     // ===========================================
@@ -120,6 +126,7 @@ Route::middleware('auth')->group(function () {
           Route::patch('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
 
     }); 
+    
     
 });
 
