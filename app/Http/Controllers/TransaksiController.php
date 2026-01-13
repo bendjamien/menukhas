@@ -61,4 +61,15 @@ class TransaksiController extends Controller
 
         return view('transaksi.show', compact('transaksi', 'settings'));
     }
+
+    public function cetakStruk(Transaksi $transaksi)
+    {
+        $transaksi->load(['kasir', 'pelanggan', 'details.produk', 'pembayaran']);
+
+        $settings = Cache::rememberForever('all_settings', function () {
+            return Setting::all()->pluck('value', 'key');
+        });
+
+        return view('transaksi.cetak-struk', compact('transaksi', 'settings'));
+    }
 }

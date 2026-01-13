@@ -37,6 +37,7 @@
                     <select id="role" name="role" class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500">
                         <option value="kasir" {{ old('role') == 'kasir' ? 'selected' : '' }}>Kasir</option>
                         <option value="admin" {{ old('role') == 'admin' ? 'selected' : '' }}>Admin</option>
+                        <option value="owner" {{ old('role') == 'owner' ? 'selected' : '' }}>Owner</option>
                     </select>
                 </div>
                 <div>

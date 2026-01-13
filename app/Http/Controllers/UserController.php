@@ -8,12 +8,13 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth; 
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
+use SimpleSoftwareIO\QrCode\Facades\QrCode; 
 
 class UserController extends Controller
 {
     public function index()
     {
-        $users = User::paginate(10);
+        $users = User::latest()->paginate(10);
         return view('users.index', compact('users'));
     }
 
@@ -28,7 +29,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users,username',
             'email' => 'required|string|email|max:255|unique:users,email',
-            'role' => ['required', Rule::in(['admin', 'kasir'])],
+            'role' => ['required', Rule::in(['admin', 'kasir', 'owner'])],
             'status' => 'required|boolean',
             'password' => ['required', 'confirmed', Password::min(8)],
         ]);
@@ -56,7 +57,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'username' => ['required', 'string', 'max:255', Rule::unique('users')->ignore($user->id)],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
-            'role' => ['required', Rule::in(['admin', 'kasir'])],
+            'role' => ['required', Rule::in(['admin', 'kasir', 'owner'])],
             'status' => 'required|boolean',
             'password' => ['nullable', 'confirmed', Password::min(8)], 
         ]);
@@ -78,7 +79,6 @@ class UserController extends Controller
         return redirect()->route('users.index')->with('toast_success', 'Data user berhasil diperbarui!');
     }
 
-
     public function toggleStatus(User $user)
     {
         if ($user->id == Auth::id()) {
@@ -91,5 +91,16 @@ class UserController extends Controller
         $statusMsg = $user->status ? 'diaktifkan kembali.' : 'dinonaktifkan.';
         
         return redirect()->back()->with('toast_success', 'Akun ' . $user->name . ' berhasil ' . $statusMsg);
+    }
+
+    public function cetakKartu($id)
+    {
+        $user = User::findOrFail($id);
+        
+        $qrContent = 'ID-' . $user->id;
+        
+        $qrCode = QrCode::size(200)->generate($qrContent);
+
+        return view('users.kartu', compact('user', 'qrCode'));
     }
 }

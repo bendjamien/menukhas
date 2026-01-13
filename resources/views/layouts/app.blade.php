@@ -18,6 +18,16 @@
             #chat-box::-webkit-scrollbar-track { background: #f1f5f9; }
             #chat-box::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
             #chat-box::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+            /* Hide number input arrows */
+            input::-webkit-outer-spin-button,
+            input::-webkit-inner-spin-button {
+                -webkit-appearance: none;
+                margin: 0;
+            }
+            input[type=number] {
+                -moz-appearance: textfield;
+            }
         </style>
     </head>
     <body class="font-sans antialiased text-gray-900 bg-gray-100">

@@ -143,20 +143,31 @@
                                 <span class="block text-xs text-gray-500 mt-0.5">@ Rp {{ number_format($item->harga_satuan, 0, ',', '.') }}</span>
                             </div>
                             <div class="flex flex-col items-end space-y-2">
-                                <span class="text-sm font-bold text-gray-800">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</span>
-                                <div class="flex items-center space-x-1 bg-white rounded border border-gray-200">
-                                    <form action="{{ route('pos.update_item') }}" method="POST" class="m-0">
-                                        @csrf
-                                        <input type="hidden" name="transaksi_detail_id" value="{{ $item->id }}">
-                                        <input type="number" name="qty" value="{{ $item->jumlah }}" min="1"
-                                               class="w-10 text-center border-none p-0 text-sm h-6 focus:ring-0"
-                                               onchange="this.form.submit()">
-                                    </form>
+                                <span id="item-subtotal-{{ $item->id }}" class="text-sm font-bold text-gray-800">Rp {{ number_format($item->subtotal, 0, ',', '.') }}</span>
+                                <div class="flex items-center gap-2">
+                                    <div class="flex items-center bg-white rounded-lg border border-gray-300 shadow-sm overflow-hidden h-9">
+                                        <button type="button" 
+                                                onclick="let input = document.getElementById('qty-{{ $item->id }}'); if(input.value > 1) { input.value--; updateItemQty('{{ $item->id }}', input.value); }"
+                                                class="h-full px-2.5 bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors border-r border-gray-200">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg>
+                                        </button>
+                                        
+                                        <input type="number" id="qty-{{ $item->id }}" value="{{ $item->jumlah }}" min="1"
+                                                class="w-12 h-full text-center border-none p-0 text-base font-bold focus:ring-0 appearance-none"
+                                                onchange="updateItemQty('{{ $item->id }}', this.value)">
+
+                                        <button type="button" 
+                                                onclick="let input = document.getElementById('qty-{{ $item->id }}'); input.value++; updateItemQty('{{ $item->id }}', input.value);"
+                                                class="h-full px-2.5 bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors border-l border-gray-200">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                        </button>
+                                    </div>
+
                                     <form action="{{ route('pos.remove_item') }}" method="POST" class="m-0">
                                         @csrf
                                         <input type="hidden" name="transaksi_detail_id" value="{{ $item->id }}">
-                                        <button type="submit" class="px-1.5 py-0.5 text-gray-400 hover:text-red-500 transition-colors border-l">
-                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        <button type="submit" class="w-9 h-9 flex items-center justify-center text-red-500 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-colors" title="Hapus Item">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                         </button>
                                     </form>
                                 </div>
@@ -174,11 +185,11 @@
                     <div class="space-y-1">
                         <div class="flex justify-between text-sm text-gray-600">
                             <span>Subtotal</span>
-                            <span>Rp {{ number_format($activeDraft->total, 0, ',', '.') }}</span>
+                            <span id="cart-subtotal">Rp {{ number_format($activeDraft->total, 0, ',', '.') }}</span>
                         </div>
                         <div class="flex justify-between text-2xl font-bold text-sky-600">
                             <span>Total</span>
-                            <span>Rp {{ number_format($activeDraft->total, 0, ',', '.') }}</span>
+                            <span id="cart-total">Rp {{ number_format($activeDraft->total, 0, ',', '.') }}</span>
                         </div>
                     </div>
 
@@ -223,4 +234,49 @@
         </x-modal>
 
     </div>
+
+    <script>
+        function updateItemQty(detailId, newQty) {
+            // Prevent negative or zero
+            if(newQty < 1) return;
+
+            fetch('{{ route('pos.update_item') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    transaksi_detail_id: detailId,
+                    qty: newQty
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if(data.status === 'success') {
+                    // Update Item Subtotal
+                    const itemSubtotalEl = document.getElementById('item-subtotal-' + detailId);
+                    if(itemSubtotalEl) itemSubtotalEl.innerText = 'Rp ' + data.item_subtotal;
+
+                    // Update Cart Total & Subtotal
+                    const cartSubtotalEl = document.getElementById('cart-subtotal');
+                    const cartTotalEl = document.getElementById('cart-total');
+                    
+                    if(cartSubtotalEl) cartSubtotalEl.innerText = 'Rp ' + data.transaksi_total;
+                    if(cartTotalEl) cartTotalEl.innerText = 'Rp ' + data.transaksi_total;
+                } else {
+                    // Show Error Toast if available
+                    if(typeof Toastify === 'function') {
+                        Toastify({ text: data.message || 'Gagal update qty', duration: 3000, style: { background: "#ef4444" } }).showToast();
+                    } else {
+                        alert(data.message || 'Gagal update qty');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+    </script>
 </x-app-layout>

@@ -15,10 +15,11 @@ class AuthenticatedSessionController extends Controller
     /**
      * Display the login view.
      */
-    public function create(): View
-    {
-        return view('auth.login');
-    }
+    public function create()
+{
+    $logoPath = \App\Models\Setting::where('key', 'company_logo')->value('value');
+    return view('auth.login', compact('logoPath'));
+}
 
     /**
      * Handle an incoming authentication request.

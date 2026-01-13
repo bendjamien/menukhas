@@ -141,6 +141,12 @@ class PosController extends Controller
         $item = TransaksiDetail::find($validated['transaksi_detail_id']);
         
         if ($validated['qty'] > $item->produk->stok) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Melebihi stok! Sisa: ' . $item->produk->stok
+                ], 422);
+            }
             return back()->with('toast_danger', 'Melebihi stok! Sisa: ' . $item->produk->stok);
         }
 
@@ -150,6 +156,18 @@ class PosController extends Controller
         ]);
 
         $this->recalculateTransactionTotal($item->transaksi);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'status' => 'success',
+                'item_subtotal' => number_format($item->subtotal, 0, ',', '.'),
+                'item_subtotal_raw' => $item->subtotal,
+                'transaksi_total' => number_format($item->transaksi->total, 0, ',', '.'),
+                'transaksi_total_raw' => $item->transaksi->total,
+                'message' => 'Jumlah berhasil diupdate'
+            ]);
+        }
+
         return back();
     }
 

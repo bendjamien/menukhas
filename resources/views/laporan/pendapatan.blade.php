@@ -22,32 +22,50 @@
 
         <div class="bg-white p-4 rounded-lg shadow-md">
             <form action="{{ route('laporan.pendapatan') }}" method="GET">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Filter Laporan Rinci</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
-                    <div>
-                        <label for="start_date" class="block text-sm font-medium text-gray-700 mb-1">
-                            Dari Tanggal
-                        </label>
-                        <input type="date" name="start_date" id="start_date" value="{{ $startDate ?? '' }}"
-                               class="w-full border-gray-300 rounded-lg shadow-sm focus:border-sky-500 focus:ring-sky-500">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Filter & Export Laporan</h3>
+                
+                <div class="flex flex-col md:flex-row gap-4 items-end justify-between">
+                    <div class="flex gap-4 w-full md:w-auto">
+                        <div class="w-full md:w-40">
+                            <label for="bulan" class="block text-sm font-medium text-gray-700 mb-1">Bulan</label>
+                            <select name="bulan" id="bulan" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-sky-500 focus:ring-sky-500">
+                                <option value="all" {{ request('bulan') == 'all' ? 'selected' : '' }}>Semua Bulan</option>
+                                @foreach(range(1, 12) as $m)
+                                    <option value="{{ $m }}" {{ request('bulan') == $m ? 'selected' : '' }}>
+                                        {{ \Carbon\Carbon::createFromDate(null, $m, 1)->isoFormat('MMMM') }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="w-full md:w-32">
+                            <label for="tahun" class="block text-sm font-medium text-gray-700 mb-1">Tahun</label>
+                            <select name="tahun" id="tahun" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-sky-500 focus:ring-sky-500">
+                                @foreach(range(date('Y'), 2024) as $y)
+                                    <option value="{{ $y }}" {{ request('tahun', date('Y')) == $y ? 'selected' : '' }}>{{ $y }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="flex items-end">
+                            <button type="submit" class="bg-sky-500 text-white px-4 py-2 rounded-lg hover:bg-sky-600 transition shadow-sm h-[42px]">
+                                Tampilkan
+                            </button>
+                        </div>
                     </div>
 
-                    <div>
-                        <label for="end_date" class="block text-sm font-medium text-gray-700 mb-1">
-                            Sampai Tanggal
-                        </label>
-                        <input type="date" name="end_date" id="end_date" value="{{ $endDate ?? '' }}"
-                               class="w-full border-gray-300 rounded-lg shadow-sm focus:border-sky-500 focus:ring-sky-500">
-                    </div>
-                    
-                    <div class="flex items-end gap-2">
-                        <button type="submit" 
-                                class="w-1/2 py-2 px-4 bg-sky-500 text-white rounded-lg hover:bg-sky-600 transition h-fit">
-                            Filter
-                        </button>
-                        <a href="{{ route('laporan.pendapatan') }}" 
-                           class="w-1/2 text-center py-2 px-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition h-fit">
-                            Reset
+                    <div class="flex gap-2 w-full md:w-auto">
+                        <a href="{{ route('laporan.pendapatan.pdf', ['bulan' => request('bulan'), 'tahun' => request('tahun')]) }}" 
+                           target="_blank"
+                           class="flex items-center justify-center gap-2 bg-rose-600 text-white px-4 py-2 rounded-lg hover:bg-rose-700 transition shadow-sm w-full md:w-auto h-[42px]">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                            Cetak PDF
+                        </a>
+                        <a href="{{ route('laporan.pendapatan.excel', ['bulan' => request('bulan'), 'tahun' => request('tahun')]) }}" 
+                           target="_blank"
+                           class="flex items-center justify-center gap-2 bg-emerald-600 text-white px-4 py-2 rounded-lg hover:bg-emerald-700 transition shadow-sm w-full md:w-auto h-[42px]">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Export Excel
                         </a>
                     </div>
                 </div>
@@ -56,17 +74,14 @@
 
         <div class="bg-white shadow-md rounded-lg overflow-hidden">
             
-            <div class="p-4 border-b bg-gray-50">
+            <div class="p-4 border-b bg-gray-50 flex justify-between items-center">
                 <h3 class="text-lg font-semibold text-gray-800">
-                    Hasil Filter Laporan
+                    Hasil Laporan: 
+                    <span class="text-sky-600">
+                        {{ $bulan && $bulan != 'all' ? \Carbon\Carbon::createFromDate(null, $bulan, 1)->isoFormat('MMMM') : 'Semua Bulan' }} 
+                        {{ $tahun ?? date('Y') }}
+                    </span>
                 </h3>
-                @if($startDate || $endDate)
-                    <p class="text-sm text-gray-600">
-                        Menampilkan **{{ $jumlahFiltered }} transaksi** dengan total pendapatan **Rp {{ number_format($totalFiltered, 2, ',', '.') }}**
-                    </p>
-                @else
-                    <p class="text-sm text-gray-600">Menampilkan semua transaksi selesai (terbaru di bawah).</p>
-                @endif
             </div>
 
             <div class="overflow-x-auto">

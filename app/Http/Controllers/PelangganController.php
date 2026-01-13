@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Pelanggan;
-use Illuminate\Http\Request; // 1. TAMBAHKAN IMPORT
+use Illuminate\Http\Request; 
 
 class PelangganController extends Controller
 {

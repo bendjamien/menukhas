@@ -18,14 +18,20 @@ class UserSeeder extends Seeder
         // Membuat user 'Owner'
         User::create([
             'name' => 'Owner',
+            'username' => 'owner',
             'email' => 'owner@menukhas.com',
+            'role' => 'owner',
+            'status' => true,
             'password' => Hash::make('password'), // Ganti 'password' dengan password yang aman
         ]);
 
         // Anda bisa menambahkan user lain jika perlu
         // User::create([
         //     'name' => 'Staff',
+        //     'username' => 'staff',
         //     'email' => 'staff@menukhas.com',
+        //     'role' => 'kasir',
+        //     'status' => true,
         //     'password' => Hash::make('password123'),
         // ]);
     }

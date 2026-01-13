@@ -1,12 +1,32 @@
 <x-app-layout>
     <div>
         <div class="bg-sky-400 text-white p-6 rounded-lg shadow-md mb-8">
-            <h1 class="text-2xl font-bold">
-                SELAMAT DATANG DI DASHBOARD
-                <span class="text-yellow-300">MENU</span><span class="text-green-400">KHAS</span>
-            </h1>
-            <p>Kelola Transaksi Kasir Anda</p>
-        </div>
+    @php
+        $companyName = \App\Models\Setting::where('key', 'company_name')->value('value') ?? 'MenuKhas';
+        
+        if (str_contains($companyName, ' ')) {
+            $parts = explode(' ', $companyName);
+            $firstWord = $parts[0];
+            $restWords = implode(' ', array_slice($parts, 1));
+        } else {
+            $parts = preg_split('/(?=[A-Z])/', $companyName, -1, PREG_SPLIT_NO_EMPTY);
+            
+            if (count($parts) >= 2) {
+                $firstWord = $parts[0]; 
+                $restWords = implode('', array_slice($parts, 1));
+            } else {
+                $firstWord = $companyName;
+                $restWords = '';
+            }
+        }
+    @endphp
+
+    <h1 class="text-2xl font-bold uppercase">
+        SELAMAT DATANG DI DASHBOARD
+        <span class="text-amber-500">{{ $firstWord }}</span><span class="text-emerald-600">{{ $restWords }}</span>
+    </h1>
+    <p class="mt-1 opacity-90">Kelola Transaksi Kasir Anda dengan Mudah</p>
+</div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 

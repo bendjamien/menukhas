@@ -18,25 +18,30 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\LaporanPendapatanController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\AbsensiController; 
 use Illuminate\Support\Facades\Route;
 
 // ===========================================
-// RUTE PUBLIC
+// RUTE PUBLIC (BISA DIAKSES TANPA LOGIN)
 // ===========================================
+
 Route::get('/', function () {
-    return view('welcome');
+    return redirect()->route('login');
 });
 
-// Midtrans Callback (Sebaiknya di luar auth karena diakses oleh Server Midtrans)
+// Route::get('/scan-absensi', [AbsensiController::class, 'index'])->name('scan.absensi');
+Route::post('/proses-absensi', [AbsensiController::class, 'store'])->name('absensi.store');
+
+// Midtrans Callback (Diakses oleh Server Midtrans)
 Route::post('/midtrans-callback', [PosController::class, 'midtransCallback']);
 
+
 // ===========================================
-// RUTE AUTH (Login Required)
+// RUTE AUTH (HARUS LOGIN DULU)
 // ===========================================
 Route::middleware(['auth', 'verified'])->group(function () {
 
-    // 1. DASHBOARD (Semua User Login)
-    // Nanti di Sidebar kita sembunyikan linknya untuk Owner jika mau
+    // 1. DASHBOARD
     Route::get('/dashboard', function () {
         $today = Carbon::today('Asia/Jakarta');
         $jumlahPelanggan = Pelanggan::count();
@@ -57,21 +62,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ]);
     })->name('dashboard');
 
-    // 2. PROFILE & CHAT (Semua User)
     Route::post('/chat-ai', [ChatController::class, 'sendMessage'])->name('chat.send');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     
-    // 3. LAPORAN TRANSAKSI (Semua User Boleh Lihat Riwayat)
     Route::get('transaksi', [TransaksiController::class, 'index'])->name('transaksi.index');
     Route::get('transaksi/{transaksi}', [TransaksiController::class, 'show'])->name('transaksi.show');
+    Route::get('transaksi/{transaksi}/cetak-struk', [TransaksiController::class, 'cetakStruk'])->name('transaksi.cetak_struk');
 
 
     // ===========================================
     // GROUP: ADMIN & KASIR (Akses POS/Input Transaksi)
-    // Owner TIDAK BOLEH akses ini
     // ===========================================
+
     Route::middleware([\App\Http\Middleware\CheckRoleMiddleware::class . ':admin,kasir'])->group(function () {
         Route::get('pos/{transaksi?}', [PosController::class, 'index'])->name('pos.index');
         Route::get('pos-new-draft', [PosController::class, 'buatDraftBaru'])->name('pos.new_draft');
@@ -89,20 +93,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
 
     // ===========================================
-    // GROUP: ADMIN & OWNER (Akses Laporan Lengkap & Data Pelanggan)
-    // Kasir TIDAK BOLEH akses ini (kecuali Pelanggan, biasanya kasir perlu create, 
-    // tapi di sini kita taruh Resource Pelanggan agar Owner bisa lihat datanya)
+    // GROUP: ADMIN & OWNER & KASIR (Data Pelanggan)
     // ===========================================
     Route::middleware([\App\Http\Middleware\CheckRoleMiddleware::class . ':admin,owner,kasir'])->group(function () {
-        // Kita izinkan kasir akses pelanggan juga untuk tambah data
         Route::resource('pelanggan', PelangganController::class);
     });
 
-    // KHUSUS ADMIN & OWNER (Laporan Keuangan & Stok)
+    // ===========================================
+    // GROUP: KHUSUS ADMIN & OWNER (Laporan Keuangan & Stok)
+    // ===========================================
     Route::middleware([\App\Http\Middleware\CheckRoleMiddleware::class . ':admin,owner'])->group(function () {
         Route::get('stok-log', [StokLogController::class, 'index'])->name('stok_log.index');
         Route::get('pembayaran', [PembayaranController::class, 'index'])->name('pembayaran.index');
+        
         Route::get('laporan/pendapatan', [LaporanPendapatanController::class, 'index'])->name('laporan.pendapatan');
+        Route::get('laporan/pendapatan/pdf', [LaporanPendapatanController::class, 'exportPdf'])->name('laporan.pendapatan.pdf');
+        Route::get('laporan/pendapatan/excel', [LaporanPendapatanController::class, 'exportExcel'])->name('laporan.pendapatan.excel');
+
+        Route::get('laporan/absensi', [App\Http\Controllers\LaporanAbsensiController::class, 'index'])->name('laporan.absensi');
     });
 
 
@@ -115,17 +123,16 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::resource('kategori', KategoriController::class);
         Route::resource('produk', ProdukController::class); 
 
-        // Admin boleh input manual stok log
         Route::get('stok-log/create', [StokLogController::class, 'create'])->name('stok_log.create');
         Route::post('stok-log', [StokLogController::class, 'store'])->name('stok_log.store');
 
-        // Setting & User
         Route::get('pengaturan', [PengaturanController::class, 'index'])->name('pengaturan.index');
         Route::post('pengaturan', [PengaturanController::class, 'update'])->name('pengaturan.update');
+        
         Route::resource('users', UserController::class);
+        Route::get('users/{id}/cetak-kartu', [UserController::class, 'cetakKartu'])->name('users.cetak_kartu');
         Route::patch('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
         
-        // Voucher
         Route::post('vouchers', [VoucherController::class, 'store'])->name('vouchers.store');
         Route::delete('vouchers/{id}', [VoucherController::class, 'destroy'])->name('vouchers.destroy');
         Route::patch('vouchers/{id}/toggle', [VoucherController::class, 'toggleStatus'])->name('vouchers.toggle');
