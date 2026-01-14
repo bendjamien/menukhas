@@ -37,7 +37,11 @@ class ProdukController extends Controller
     {
         $kategoris = Kategori::all(); 
         
-        return view('produk.create', compact('kategoris'));
+        // Generate Auto Barcode
+        $nextId = Produk::max('id') + 1;
+        $autoBarcode = 'BRCD-' . str_pad($nextId, 3, '0', STR_PAD_LEFT);
+
+        return view('produk.create', compact('kategoris', 'autoBarcode'));
     }
 
     public function store(Request $request)

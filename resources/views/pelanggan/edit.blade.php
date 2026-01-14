@@ -42,7 +42,7 @@
                 <div>
                     <label for="poin" class="block text-sm font-medium text-gray-700">Poin</label>
                     <input type="number" name="poin" id="poin" value="{{ old('poin', $pelanggan->poin) }}"
-                           class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500">
+                           class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500" disabled>
                 </div>
             
             </div> <div class="flex justify-end pt-6 mt-6 border-t">

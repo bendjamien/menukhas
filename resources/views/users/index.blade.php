@@ -109,14 +109,36 @@
                                     <div class="flex justify-end space-x-2">
                                         
                                         @if($user->status)
-                                        <a href="{{ route('users.cetak_kartu', $user->id) }}" target="_blank" 
-                                           class="text-sky-600 hover:text-sky-900 bg-sky-50 hover:bg-sky-100 p-2 rounded-lg transition" 
-                                           title="Cetak ID Card Pegawai">
-                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2" />
-                                            </svg>
-                                        </a>
+                                            @if($user->request_new_pin)
+                                                <form action="{{ route('users.approve_pin', $user) }}" method="POST" class="inline-block form-approve-pin">
+                                                    @csrf
+                                                    @method('PATCH')
+                                                    <button type="button" 
+                                                       class="btn-approve-pin text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 p-2 rounded-lg transition animate-pulse ring-1 ring-green-200" 
+                                                       title="Setujui Perubahan PIN"
+                                                       data-name="{{ $user->name }}">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                    </button>
+                                                </form>
+                                            @else
+                                                <span class="inline-block text-gray-400 bg-gray-50 p-2 rounded-lg cursor-not-allowed" title="PIN Aman (Tidak ada permintaan)">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                    </svg>
+                                                </span>
+                                            @endif
                                         @endif
+
+                                        <button type="button"
+                                                onclick="managePin({{ $user->id }}, '{{ $user->name }}')"
+                                                class="text-purple-600 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 p-2 rounded-lg transition"
+                                                title="Lihat / Reset PIN">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                                            </svg>
+                                        </button>
 
                                         <a href="{{ route('users.edit', $user) }}" 
                                            class="text-yellow-600 hover:text-yellow-900 bg-yellow-50 hover:bg-yellow-100 p-2 rounded-lg transition" 
@@ -152,4 +174,152 @@
             @endif
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        function managePin(userId, userName) {
+            Swal.fire({
+                title: `Kelola PIN: ${userName}`,
+                text: "Apa yang ingin Anda lakukan?",
+                icon: 'info',
+                showCancelButton: true,
+                showDenyButton: true,
+                confirmButtonText: 'Lihat PIN',
+                denyButtonText: 'Reset PIN',
+                cancelButtonText: 'Tutup',
+                confirmButtonColor: '#3B82F6', // Blue
+                denyButtonColor: '#EF4444', // Red
+                cancelButtonColor: '#6B7280',
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // --- LIHAT PIN ---
+                    Swal.fire({
+                        title: 'Verifikasi Admin',
+                        input: 'password',
+                        inputLabel: 'Masukkan Password Admin Anda',
+                        inputPlaceholder: 'Password...',
+                        showCancelButton: true,
+                        confirmButtonText: 'Buka PIN',
+                        showLoaderOnConfirm: true,
+                        preConfirm: (password) => {
+                            return fetch(`{{ url('users') }}/${userId}/view-pin`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                },
+                                body: JSON.stringify({ admin_password: password })
+                            })
+                            .then(response => {
+                                if (!response.ok) {
+                                    throw new Error(response.statusText)
+                                }
+                                return response.json()
+                            })
+                            .catch(error => {
+                                Swal.showValidationMessage(`Request failed: ${error}`)
+                            })
+                        },
+                        allowOutsideClick: () => !Swal.isLoading()
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            if(result.value.status === 'success') {
+                                Swal.fire({
+                                    title: `PIN ${userName}`,
+                                    text: result.value.pin,
+                                    icon: 'success'
+                                });
+                            } else {
+                                Swal.fire('Gagal', result.value.message, 'error');
+                            }
+                        }
+                    })
+
+                } else if (result.isDenied) {
+                    // --- RESET PIN ---
+                    Swal.fire({
+                        title: 'Reset PIN',
+                        html:
+                            '<input id="swal-admin-pass" class="swal2-input" placeholder="Password Admin Anda" type="password">' +
+                            '<input id="swal-new-pin" class="swal2-input" placeholder="PIN Baru (6 Angka)" type="number" maxlength="6">',
+                        focusConfirm: false,
+                        showCancelButton: true,
+                        confirmButtonText: 'Reset Sekarang',
+                        confirmButtonColor: '#EF4444',
+                        preConfirm: () => {
+                            const password = document.getElementById('swal-admin-pass').value;
+                            const newPin = document.getElementById('swal-new-pin').value;
+                            
+                            if (!password || !newPin) {
+                                Swal.showValidationMessage('Harap isi kedua kolom!');
+                                return false;
+                            }
+                            if (newPin.length !== 6) {
+                                Swal.showValidationMessage('PIN harus 6 digit!');
+                                return false;
+                            }
+
+                            return fetch(`{{ url('users') }}/${userId}/reset-pin`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                                },
+                                body: JSON.stringify({ 
+                                    admin_password: password,
+                                    new_pin: newPin
+                                })
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if(data.status !== 'success') {
+                                    throw new Error(data.message || 'Gagal reset');
+                                }
+                                return data;
+                            })
+                            .catch(error => {
+                                Swal.showValidationMessage(`${error.message}`)
+                            })
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            Swal.fire('Berhasil!', 'PIN telah direset.', 'success');
+                        }
+                    })
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const buttons = document.querySelectorAll('.btn-approve-pin');
+            
+            buttons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const form = this.closest('.form-approve-pin');
+                    const userName = this.dataset.name;
+                    
+                    Swal.fire({
+                        title: 'Setujui PIN Baru?',
+                        text: `Anda akan menyetujui perubahan PIN untuk user "${userName}".`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#10B981', // Emerald 500
+                        cancelButtonColor: '#6B7280', // Gray 500
+                        confirmButtonText: 'Ya, Setujui',
+                        cancelButtonText: 'Batal',
+                        reverseButtons: true,
+                        customClass: {
+                            popup: 'rounded-xl',
+                            confirmButton: 'px-4 py-2 rounded-lg',
+                            cancelButton: 'px-4 py-2 rounded-lg'
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            form.submit();
+                        }
+                    });
+                });
+            });
+        });
+    </script>
 </x-app-layout>

@@ -24,7 +24,12 @@ class PengaturanController extends Controller
             'jam_masuk_kantor' => '08:00',
             'jam_pulang_kantor' => '17:00',
             'toleransi_telat' => '0',
-            'company_logo' => null, // Key baru untuk logo
+            'company_logo' => null, 
+            
+            // Pengaturan Loyalty Point
+            'loyalty_min_transaksi' => '10000',      // Min belanja 10rb baru dapat poin (biar ga rugi di trx kecil)
+            'loyalty_nominal_per_poin' => '10000',   // Tiap kelipatan 10rb dapat 1 poin (mudah dihitung)
+            'loyalty_nilai_rupiah_per_poin' => '200', // 1 Poin = Rp 200 (Total cashback sekitar 2%)
         ];
 
         $settings = [];
@@ -57,8 +62,12 @@ class PengaturanController extends Controller
             'jam_masuk_kantor' => 'required',
             'jam_pulang_kantor' => 'required',
             'toleransi_telat' => 'required|numeric|min:0',
-            // Validasi Logo (Gambar max 2MB)
             'company_logo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            
+            // Validasi Loyalty
+            'loyalty_min_transaksi' => 'required|numeric|min:0',
+            'loyalty_nominal_per_poin' => 'required|numeric|min:1',
+            'loyalty_nilai_rupiah_per_poin' => 'required|numeric|min:0',
         ]);
 
         // LOGIKA UPLOAD LOGO

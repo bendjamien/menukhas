@@ -34,6 +34,20 @@
                         </svg>
                         <span class="font-medium">Ubah Password</span>
                     </button>
+                    
+                    @if(Auth::user()->role === 'kasir')
+                    <button @click="activeTab = 'pin'"
+                            :class="{ 
+                                'bg-blue-50 text-blue-700 border-r-2 border-blue-700': activeTab === 'pin', 
+                                'text-gray-600 hover:bg-gray-50 hover:text-gray-900': activeTab !== 'pin' 
+                            }"
+                            class="w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 focus:outline-none">
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 001-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd" />
+                        </svg>
+                        <span class="font-medium">PIN Absensi</span>
+                    </button>
+                    @endif
                     <button @click="activeTab = 'delete'"
                             :class="{ 
                                 'bg-red-50 text-red-700 border-r-2 border-red-700': activeTab === 'delete', 
@@ -71,6 +85,20 @@
                         </svg>
                         <span>Password</span>
                     </button>
+
+                    @if(Auth::user()->role === 'kasir')
+                    <button @click="activeTab = 'pin'"
+                            :class="{ 
+                                'bg-blue-600 text-white': activeTab === 'pin', 
+                                'bg-white text-gray-600 border border-gray-200': activeTab !== 'pin' 
+                            }"
+                            class="flex items-center space-x-2 px-4 py-2.5 rounded-lg transition-colors duration-200 focus:outline-none whitespace-nowrap">
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 001-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd" />
+                        </svg>
+                        <span>PIN</span>
+                    </button>
+                    @endif
 
                     <button @click="activeTab = 'delete'"
                             :class="{ 
@@ -138,6 +166,73 @@
                     <div class="p-6 sm:p-8">
                         <div class="max-w-2xl">
                             @include('profile.partials.update-password-form')
+                        </div>
+                    </div>
+                </div>
+
+                <div x-show="activeTab === 'pin'"
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 transform translate-y-4"
+                     x-transition:enter-end="opacity-100 transform translate-y-0"
+                     class="bg-white rounded-xl shadow-sm overflow-hidden" 
+                     style="display: none;">
+
+                    <div class="bg-gradient-to-r from-blue-50 to-indigo-50 p-6 border-b border-blue-100">
+                        <div class="flex items-center">
+                            <div class="bg-blue-100 rounded-full p-3 mr-4">
+                                <svg class="w-6 h-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 2a4 4 0 00-4 4v1H5a1 1 0 00-.994.89l-1 9A1 1 0 004 18h12a1 1 0 001-1.11l-1-9A1 1 0 0015 7h-1V6a4 4 0 00-4-4zm2 5V6a2 2 0 10-4 0v1h4zm-6 3a1 1 0 112 0 1 1 0 01-2 0zm7-1a1 1 0 100 2 1 1 0 000-2z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h2 class="text-xl font-semibold text-gray-900">Ubah PIN Absensi</h2>
+                                <p class="mt-1 text-sm text-gray-600">Ajukan perubahan PIN untuk absensi Anda. Perubahan memerlukan persetujuan Admin.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="p-6 sm:p-8">
+                        <div class="max-w-2xl">
+                            @if(Auth::user()->request_new_pin)
+                                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                                    <div class="flex">
+                                        <div class="flex-shrink-0">
+                                            <svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div class="ml-3">
+                                            <p class="text-sm text-yellow-700">
+                                                Permintaan perubahan PIN Anda sedang menunggu persetujuan Admin.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
+
+                            <form method="post" action="{{ route('profile.request_pin') }}" class="space-y-6">
+                                @csrf
+
+                                <div>
+                                    <label for="pin" class="block font-medium text-sm text-gray-700">PIN Baru (6 Digit Angka)</label>
+                                    <input id="pin" name="pin" type="text" pattern="[0-9]*" inputmode="numeric" maxlength="6" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-sky-500 focus:ring-sky-500" required autofocus autocomplete="off" />
+                                    <x-input-error class="mt-2" :messages="$errors->get('pin')" />
+                                </div>
+
+                                <div class="flex items-center gap-4">
+                                    <x-primary-button>{{ __('Ajukan Perubahan PIN') }}</x-primary-button>
+
+                                    @if (session('status') === 'pin-updated')
+                                        <p
+                                            x-data="{ show: true }"
+                                            x-show="show"
+                                            x-transition
+                                            x-init="setTimeout(() => show = false, 2000)"
+                                            class="text-sm text-gray-600"
+                                        >{{ __('Saved.') }}</p>
+                                    @endif
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>

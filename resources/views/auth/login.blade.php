@@ -11,16 +11,9 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Poppins', sans-serif; }
-        
-        /* HIDE DEFAULT ELEMENTS LIBRARY SCANNER */
-        #reader__dashboard_section_csr span, 
-        #reader__dashboard_section_swaplink { display: none !important; }
-        #reader { border: none !important; }
-        #reader video { object-fit: cover; height: 100%; width: 100%; border-radius: 12px; }
     </style>
 
     <script src="https://unpkg.com/alpinejs" defer></script>
-    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
 </head>
@@ -28,9 +21,64 @@
 <body class="bg-gray-50" 
       x-data="{ 
           showAbsensiModal: false,
+          pin: '',
           selectedRole: '{{ old('role_check') }}' || null,
+          failedAttempts: 0,
           selectRole(role) { this.selectedRole = role; },
-          resetRole() { this.selectedRole = null; }
+          resetRole() { this.selectedRole = null; },
+          submitPin() {
+              if(this.pin.length < 6) return;
+              
+              fetch('{{ route('absensi.store') }}', {
+                  method: 'POST',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                  },
+                  body: JSON.stringify({ pin: this.pin })
+              })
+              .then(response => response.json())
+              .then(data => {
+                  if(data.status == 'success') {
+                      this.showAbsensiModal = false;
+                      this.pin = '';
+                      this.failedAttempts = 0;
+                      Swal.fire({
+                          title: data.tipe === 'masuk' ? 'SELAMAT DATANG' : 'HATI-HATI',
+                          text: data.message,
+                          icon: 'success',
+                          timer: 3000,
+                          showConfirmButton: false
+                      });
+                  } else {
+                      this.pin = '';
+                      this.failedAttempts++;
+                      
+                      if (this.failedAttempts >= 3) {
+                          Swal.fire({
+                              title: 'AKSES DITOLAK',
+                              text: 'Anda salah memasukkan PIN lebih dari 3 kali. Hubungi Admin untuk mereset dan memperbaiki PIN.',
+                              icon: 'warning',
+                              confirmButtonText: 'Mengerti',
+                              confirmButtonColor: '#d33'
+                          });
+                          this.showAbsensiModal = false;
+                      } else {
+                          Swal.fire({
+                              title: 'Gagal',
+                              text: data.message,
+                              icon: 'error',
+                              timer: 1500,
+                              showConfirmButton: false
+                          });
+                      }
+                  }
+              })
+              .catch(error => {
+                  console.error('Error:', error);
+                  Swal.fire('Error', 'Terjadi kesalahan sistem', 'error');
+              });
+          }
       }"
       @close-modal.window="showAbsensiModal = false">
 
@@ -42,7 +90,7 @@
 
             <div class="relative z-10">
                 <div class="bg-white/90 rounded-full p-4 mb-6 inline-block shadow-2xl">
-                    <div class="bg-[#F0EADA] rounded-full p-6 w-40 h-40 flex items-center justify-center overflow-hidden">
+                    <div class="bg-[#F0EADA] rounded-full p-8 w-40 h-40 flex items-center justify-center overflow-hidden">
                         <img src="{{ isset($logoPath) && $logoPath ? asset('storage/' . $logoPath) : 'https://i.ibb.co/6r4nCNk/logo-menukhas.png' }}" 
                              alt="Logo Aplikasi" 
                              class="w-full h-full object-contain rounded-full">
@@ -73,7 +121,7 @@
                     </div>
 
                     <div class="space-y-4">
-                        <button @click="selectRole('owner')" class="w-full bg-white border border-gray-100 p-4 rounded-2xl flex items-center shadow-sm hover:shadow-lg hover:border-purple-200 hover:bg-purple-50 transition-all duration-200 group">
+                        <button @click="selectRole('owner')" class="w-full bg-white border border-gray-100 p-4 rounded-2xl flex items-center shadow-sm hover:shadow-lg hover:border-purple-200 hover:bg-white transition-all duration-200 group">
                             <div class="p-3 bg-purple-100 text-purple-600 rounded-xl group-hover:bg-purple-600 group-hover:text-white transition">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                             </div>
@@ -84,7 +132,7 @@
                             <svg class="w-5 h-5 ml-auto text-gray-300 group-hover:text-purple-500 transform group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                         </button>
 
-                        <button @click="selectRole('admin')" class="w-full bg-white border border-gray-100 p-4 rounded-2xl flex items-center shadow-sm hover:shadow-lg hover:border-blue-200 hover:bg-blue-50 transition-all duration-200 group">
+                        <button @click="selectRole('admin')" class="w-full bg-white border border-gray-100 p-4 rounded-2xl flex items-center shadow-sm hover:shadow-lg hover:border-blue-200 hover:bg-white transition-all duration-200 group">
                             <div class="p-3 bg-blue-100 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.096 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                             </div>
@@ -95,7 +143,7 @@
                             <svg class="w-5 h-5 ml-auto text-gray-300 group-hover:text-blue-500 transform group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                         </button>
 
-                        <button @click="selectRole('kasir')" class="w-full bg-white border border-gray-100 p-4 rounded-2xl flex items-center shadow-sm hover:shadow-lg hover:border-green-200 hover:bg-green-50 transition-all duration-200 group">
+                        <button @click="selectRole('kasir')" class="w-full bg-white border border-gray-100 p-4 rounded-2xl flex items-center shadow-sm hover:shadow-lg hover:border-green-200 hover:bg-white transition-all duration-200 group">
                             <div class="p-3 bg-green-100 text-green-600 rounded-xl group-hover:bg-green-600 group-hover:text-white transition">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
                             </div>
@@ -151,7 +199,7 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="w-full bg-[#5EA5D8] hover:bg-sky-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition transform hover:-translate-y-0.5 duration-200">
+                        <button type="submit" class="w-full bg-[#5EA5D8] hover:bg-sky-600 text-white font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition transform hover:-translate-y-0.5 duration-200 mt-6">
                             Masuk
                         </button>
                     </form>
@@ -160,12 +208,12 @@
                         <div class="mt-8 pt-6 border-t border-gray-100 text-center">
                             <p class="text-gray-400 text-xs uppercase tracking-wide font-bold mb-3">Absensi Pegawai</p>
                             <button type="button" 
-                                    @click="showAbsensiModal = true; startScanner()"
+                                    @click="showAbsensiModal = true; pin = ''; failedAttempts = 0;"
                                     class="flex items-center justify-center w-full py-3 px-4 bg-green-50 text-green-700 border border-green-200 rounded-xl hover:bg-green-100 font-bold transition-all duration-200 shadow-sm hover:shadow-md">
                                 <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
                                 </svg>
-                                Scan Absensi (Masuk / Pulang)
+                                Absen via PIN (Masuk / Pulang)
                             </button>
                         </div>
                     </template>
@@ -174,121 +222,63 @@
         </div>
     </div> 
 
-    <div x-show="showAbsensiModal" style="display: none;" class="fixed inset-0 z-50 flex items-end justify-center sm:items-center px-4 pb-6 sm:pb-0" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div x-show="showAbsensiModal" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm transition-opacity" @click="closeModal()"></div>
-        <div x-show="showAbsensiModal" x-transition:enter="ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-full sm:translate-y-10 sm:scale-95" x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100" x-transition:leave="ease-in duration-200" x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100" x-transition:leave-end="opacity-0 translate-y-full sm:translate-y-10 sm:scale-95" class="bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden w-full max-w-md relative z-10">
-            <div class="px-6 py-4 bg-white flex justify-between items-center border-b border-gray-100">
-                <div>
-                    <h3 class="text-xl font-bold text-gray-800">Scanner Absensi</h3>
-                    <p class="text-xs text-gray-500">Pastikan QR Code terlihat jelas</p>
-                </div>
-                <button @click="closeModal()" class="bg-gray-100 rounded-full p-2 text-gray-500 hover:bg-gray-200 transition">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-            </div>
-            <div class="p-6 bg-gray-50">
-                <div class="relative w-full aspect-square bg-gray-900 rounded-2xl overflow-hidden shadow-inner border border-gray-200">
-                    <div class="absolute inset-0 flex flex-col items-center justify-center text-white/50 z-0">
-                        <svg class="animate-spin h-10 w-10 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <p class="text-sm font-medium">Menyiapkan Kamera...</p>
+    <!-- ABSENSI MODAL (Fixed Square Popup) -->
+    <div x-show="showAbsensiModal" 
+         x-transition:enter="transition ease-out duration-200"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-150"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+         style="display: none;"
+         @keydown.window="if(showAbsensiModal) $refs.pinInput.focus()">
+        
+        <!-- Modal Card -->
+        <div class="bg-white w-[320px] rounded-3xl shadow-2xl p-8 relative flex flex-col items-center"
+             @click.away="showAbsensiModal = false"
+             x-show="showAbsensiModal"
+             x-transition:enter="transition ease-out duration-300 transform"
+             x-transition:enter-start="scale-90 opacity-0"
+             x-transition:enter-end="scale-100 opacity-100">
+            
+            <h3 class="text-gray-800 font-extrabold text-lg mb-2">Verifikasi PIN</h3>
+            <p class="text-gray-400 text-xs mb-8">Masukkan 6 digit kode absen</p>
+
+            <!-- Hidden Input -->
+            <input type="text" 
+                   x-ref="pinInput"
+                   x-model="pin" 
+                   inputmode="numeric"
+                   maxlength="6" 
+                   class="absolute opacity-0 w-1 h-1"
+                   @input="pin = pin.replace(/\D/g, '').slice(0, 6); if(pin.length === 6) submitPin()"
+                   autocomplete="off">
+
+            <!-- PIN Display Boxes (Compact) -->
+            <div class="flex gap-2 mb-6" @click="$refs.pinInput.focus()">
+                <template x-for="i in 6" :key="i">
+                    <div class="w-10 h-12 border-2 rounded-xl flex items-center justify-center text-xl font-bold transition-all duration-200"
+                         :class="pin.length >= i 
+                            ? 'border-sky-500 bg-sky-50 text-sky-600' 
+                            : 'border-gray-200 bg-gray-50 text-gray-300'">
+                        <span x-show="pin.length >= i">●</span>
+                        <span x-show="pin.length === i - 1" class="w-0.5 h-5 bg-sky-500 animate-pulse"></span>
                     </div>
-                    <div id="reader" class="relative z-10 w-full h-full object-cover"></div>
-                    <div class="absolute inset-0 pointer-events-none z-20 p-8 flex items-center justify-center">
-                        <div class="w-full h-full border-2 border-dashed border-white/70 rounded-xl relative">
-                            <div class="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-green-500 rounded-tl-lg -mt-1 -ml-1"></div>
-                            <div class="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-green-500 rounded-tr-lg -mt-1 -mr-1"></div>
-                            <div class="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-green-500 rounded-bl-lg -mb-1 -ml-1"></div>
-                            <div class="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-green-500 rounded-br-lg -mb-1 -mr-1"></div>
-                        </div>
-                    </div>
-                </div>
-                <p class="text-center text-sm font-medium text-gray-600 mt-4 bg-white py-3 rounded-xl shadow-sm border border-gray-100 flex items-center justify-center">
-                    <svg class="w-5 h-5 text-green-500 mr-2 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22a2 2 0 001.664.89H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                    Arahkan QR Code ke dalam bingkai
-                </p>
+                </template>
             </div>
+
+            <div class="w-full h-px bg-gray-100 mb-6"></div>
+
+            <button @click="showAbsensiModal = false" 
+                    class="text-sm font-bold text-gray-400 hover:text-red-500 transition-colors uppercase tracking-widest">
+                Batal
+            </button>
         </div>
     </div>
 
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    <script>
-        let html5QrcodeScanner = null;
-        
-        function closeModal() {
-            window.dispatchEvent(new CustomEvent('close-modal'));
-            stopScanner();
-        }
-
-        function startScanner() {
-            // Hapus delay agar spinner muncul langsung, lalu kamera menyusul
-            if(html5QrcodeScanner === null) {
-                let config = { 
-                    fps: 10, 
-                    qrbox: { width: 250, height: 250 },
-                    rememberLastUsedCamera: true 
-                };
-                html5QrcodeScanner = new Html5QrcodeScanner("reader", config, /* verbose= */ false);
-            }
-            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-        }
-
-        function stopScanner() {
-            if(html5QrcodeScanner) {
-                html5QrcodeScanner.clear().catch(error => console.error("Failed to clear.", error));
-            }
-        }
-
-        function onScanFailure(error) {}
-
-        function onScanSuccess(decodedText, decodedResult) {
-            html5QrcodeScanner.pause();
-
-            fetch("{{ route('absensi.store') }}", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-CSRF-TOKEN": "{{ csrf_token() }}"
-                },
-                body: JSON.stringify({ qr_code: decodedText })
-            })
-            .then(response => {
-                if (!response.ok) throw new Error('Server Error');
-                return response.json();
-            })
-            .then(data => {
-                if(data.status == 'success') {
-                    closeModal(); 
-                    Swal.fire({
-                        title: data.tipe === 'masuk' ? 'SELAMAT DATANG' : 'HATI-HATI',
-                        text: data.message,
-                        icon: 'success',
-                        timer: 3000,
-                        showConfirmButton: false,
-                        backdrop: `rgba(0,0,123,0.4)`
-                    });
-                } else {
-                    Swal.fire({
-                        title: 'Gagal',
-                        text: data.message,
-                        icon: 'error',
-                        timer: 2000
-                    }).then(() => {
-                        html5QrcodeScanner.resume();
-                    });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire('Error', 'Terjadi kesalahan sistem', 'error');
-                html5QrcodeScanner.resume();
-            });
-        }
-    </script>
 
     @if (session('status') || session('success') || session('toast_success'))
         <div x-data x-init="Toastify({ text: '{{ session('status') ?? session('success') ?? session('toast_success') }}', duration: 3000, gravity: 'top', position: 'right', style: { background: 'linear-gradient(to right, #00b09b, #96c93d)', borderRadius: '12px' } }).showToast();"></div>
@@ -300,6 +290,10 @@
     
     @if (session('toast_warning'))
         <script>Swal.fire({ icon: 'warning', title: 'Akses Ditolak', text: "{{ session('toast_warning') }}" });</script>
+    @endif
+
+    @if (session('session_expired'))
+        <div x-data x-init="Toastify({ text: 'Waktu sesi Anda telah habis. Silakan login kembali.', duration: 5000, gravity: 'top', position: 'right', style: { background: 'linear-gradient(to right, #f85032, #e73827)', borderRadius: '12px' } }).showToast();"></div>
     @endif
 
 </body>

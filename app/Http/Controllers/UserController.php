@@ -93,6 +93,18 @@ class UserController extends Controller
         return redirect()->back()->with('toast_success', 'Akun ' . $user->name . ' berhasil ' . $statusMsg);
     }
 
+    public function approvePin(User $user)
+    {
+        if ($user->request_new_pin && $user->pending_pin) {
+            $user->pin = $user->pending_pin;
+            $user->pending_pin = null;
+            $user->request_new_pin = false;
+            $user->save();
+            return redirect()->back()->with('toast_success', 'PIN berhasil disetujui dan diperbarui!');
+        }
+        return redirect()->back()->with('toast_danger', 'Tidak ada permintaan PIN untuk user ini.');
+    }
+
     public function cetakKartu($id)
     {
         $user = User::findOrFail($id);
@@ -102,5 +114,44 @@ class UserController extends Controller
         $qrCode = QrCode::size(200)->generate($qrContent);
 
         return view('users.kartu', compact('user', 'qrCode'));
+    }
+
+    public function viewPin(Request $request, User $user)
+    {
+        $request->validate([
+            'admin_password' => 'required'
+        ]);
+
+        if (!Hash::check($request->admin_password, Auth::user()->password)) {
+            return response()->json(['status' => 'error', 'message' => 'Password Admin salah!'], 403);
+        }
+
+        return response()->json([
+            'status' => 'success', 
+            'pin' => $user->pin ? $user->pin : 'Belum diatur'
+        ]);
+    }
+
+    public function resetPin(Request $request, User $user)
+    {
+        $request->validate([
+            'admin_password' => 'required',
+            'new_pin' => 'required|numeric|digits:6'
+        ]);
+
+        if (!Hash::check($request->admin_password, Auth::user()->password)) {
+            return response()->json(['status' => 'error', 'message' => 'Password Admin salah!'], 403);
+        }
+
+        $user->update([
+            'pin' => $request->new_pin,
+            'pin_attempts' => 0,
+            'is_pin_blocked' => false
+        ]);
+
+        return response()->json([
+            'status' => 'success', 
+            'message' => 'PIN berhasil direset!'
+        ]);
     }
 }

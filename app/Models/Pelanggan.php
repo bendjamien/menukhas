@@ -21,4 +21,17 @@ class Pelanggan extends Model
         'member_level',
         'poin',
     ];
+
+    public function recalculateLevel()
+    {
+        if ($this->poin >= 5000) {
+            $this->member_level = 'Gold';
+        } elseif ($this->poin >= 1000) {
+            $this->member_level = 'Silver';
+        } else {
+            $this->member_level = 'Member'; // atau Bronze
+        }
+        
+        $this->save();
+    }
 }

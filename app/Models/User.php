@@ -25,6 +25,9 @@ class User extends Authenticatable
         'no_hp',   
         'role',
         'status',
+        'pin',
+        'request_new_pin',
+        'pending_pin',
     ];
 
     /**
@@ -48,5 +51,10 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function absensis()
+    {
+        return $this->hasMany(Absensi::class);
     }
 }

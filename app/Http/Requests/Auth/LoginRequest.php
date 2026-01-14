@@ -68,15 +68,21 @@ class LoginRequest extends FormRequest
         $selectedRole = $this->input('role_check'); 
 
         // Jika user memilih tombol (ada selectedRole) DAN rolenya tidak cocok
+        // PENGECUALIAN: Admin dan Owner boleh login dari pintu mana saja (termasuk pintu Kasir)
         if ($selectedRole && $user->role !== $selectedRole) {
             
-            Auth::logout(); // Logout paksa
-            $this->session()->invalidate();
-            $this->session()->regenerateToken();
+            // Jika user adalah admin atau owner, izinkan saja walau salah pintu
+            if (in_array($user->role, ['admin', 'owner'])) {
+                // Do nothing, allow login
+            } else {
+                Auth::logout(); // Logout paksa
+                $this->session()->invalidate();
+                $this->session()->regenerateToken();
 
-            throw ValidationException::withMessages([
-                'email' => 'Akses Ditolak! Akun ini adalah ' . ucfirst($user->role) . ', silakan login di menu yang benar.',
-            ]);
+                throw ValidationException::withMessages([
+                    'email' => 'Akses Ditolak! Akun ini adalah ' . ucfirst($user->role) . ', silakan login di menu yang benar.',
+                ]);
+            }
         }
 
         // 4. Jika semua lolos, bersihkan rate limiter dan kirim notif sukses

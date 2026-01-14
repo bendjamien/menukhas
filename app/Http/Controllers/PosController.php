@@ -187,6 +187,7 @@ class PosController extends Controller
 
         if ($request->filled('nama_pelanggan_baru')) {
             $namaBaru = $request->nama_pelanggan_baru;
+            $noHpBaru = $request->no_hp_baru ?? '-'; // Ambil No HP dari input baru
             
             $existing = Pelanggan::where('nama', $namaBaru)->first();
             
@@ -195,10 +196,11 @@ class PosController extends Controller
             } else {
                 $newPelanggan = Pelanggan::create([
                     'nama' => $namaBaru,
-                    'no_hp' => '-',      
+                    'no_hp' => $noHpBaru,      
                     'alamat' => '-',     
                     'email' => null,     
-                    'member_level' => 'Regular'
+                    'member_level' => 'Regular',
+                    'poin' => 0
                 ]);
                 $pelangganId = $newPelanggan->id;
             }
@@ -222,6 +224,115 @@ class PosController extends Controller
             $transaksi->delete();
         }
         return redirect()->route('pos.index')->with('toast_danger', 'Draft dihapus.');
+    }
+
+    public function searchMember(Request $request)
+    {
+        $no_hp = $request->no_hp;
+        $member = Pelanggan::where('no_hp', $no_hp)->first();
+
+        if ($member) {
+            return response()->json([
+                'valid' => true,
+                'member' => $member,
+                'message' => 'Member ditemukan!'
+            ]);
+        }
+
+        return response()->json([
+            'valid' => false,
+            'message' => 'Member tidak ditemukan.'
+        ]);
+    }
+
+    public function storeNewMember(Request $request)
+    {
+        $request->validate([
+            'nama' => 'required|string|max:255',
+            'no_hp' => 'required|string|max:20|unique:pelanggan,no_hp',
+            'alamat' => 'nullable|string',
+            'email' => 'nullable|email',
+        ]);
+
+        $member = Pelanggan::create([
+            'nama' => $request->nama,
+            'no_hp' => $request->no_hp,
+            'alamat' => $request->alamat ?? '-',
+            'email' => $request->email,
+            'poin' => 0,
+            'member_level' => 'Member'
+        ]);
+
+        // Jika ada transaksi_id, otomatis set pelanggan ke transaksi tersebut
+        if ($request->has('transaksi_id')) {
+            $transaksi = Transaksi::find($request->transaksi_id);
+            if ($transaksi && $transaksi->status == 'draft') {
+                $transaksi->update(['pelanggan_id' => $member->id]);
+            }
+        }
+
+        return back()->with('toast_success', 'Member baru berhasil didaftarkan & dipilih!');
+    }
+
+    public function scanBarcode(Request $request)
+    {
+        $request->validate([
+            'barcode' => 'required|string',
+            'transaksi_id' => 'required|exists:transaksi,id'
+        ]);
+
+        $barcode = $request->barcode;
+        $transaksiId = $request->transaksi_id;
+
+        // Cari Produk by Barcode
+        $produk = Produk::where('kode_barcode', $barcode)->first();
+
+        if (!$produk) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Produk tidak ditemukan!'
+            ], 404);
+        }
+
+        if ($produk->stok <= 0) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "Stok {$produk->nama_produk} habis!"
+            ], 400);
+        }
+
+        $transaksi = Transaksi::find($transaksiId);
+        $item = $transaksi->details()->where('produk_id', $produk->id)->first();
+        
+        $currentQty = $item ? $item->jumlah : 0;
+
+        if (($currentQty + 1) > $produk->stok) {
+            return response()->json([
+                'status' => 'error',
+                'message' => "Stok tidak cukup. Sisa: {$produk->stok}"
+            ], 400);
+        }
+
+        // Add or Update Item
+        if ($item) {
+            $item->increment('jumlah');
+            $item->update(['subtotal' => $item->jumlah * $item->harga_satuan]);
+        } else {
+            $transaksi->details()->create([
+                'produk_id' => $produk->id,
+                'jumlah' => 1,
+                'harga_satuan' => $produk->harga_jual,
+                'subtotal' => $produk->harga_jual,
+            ]);
+        }
+
+        $this->recalculateTransactionTotal($transaksi);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => "{$produk->nama_produk} berhasil ditambahkan!",
+            'cart_total' => number_format($transaksi->total, 0, ',', '.')
+        ]);
     }
 
     public function showCheckoutForm(Transaksi $transaksi)
@@ -268,23 +379,52 @@ class PosController extends Controller
         $request->validate([
             'metode_bayar' => 'required|string', 
             'nominal_bayar' => 'required|numeric|min:0',
-            'voucher_code'  => 'nullable|string|exists:vouchers,kode', 
+            'voucher_code'  => 'nullable|string|exists:vouchers,kode',
+            'poin_tukar'    => 'nullable|integer|min:0', 
+            'pelanggan_id'  => 'nullable|exists:pelanggan,id', // Validasi Pelanggan ID
         ]);
+
+        // Update Pelanggan jika ada perubahan di checkout (dari fitur Cek Member)
+        if ($request->filled('pelanggan_id')) {
+            $transaksi->update(['pelanggan_id' => $request->pelanggan_id]);
+            $transaksi->load('pelanggan'); // Refresh relasi
+        }
 
         $subtotal = $transaksi->details->sum('subtotal');
         if ($subtotal == 0) return back()->with('toast_danger', 'Keranjang kosong!');
 
-        $diskon = 0;
+        // 1. Hitung Diskon Voucher
+        $diskonVoucher = 0;
         if ($request->voucher_code) {
             $voucher = Voucher::where('kode', $request->voucher_code)->first();
             if ($voucher && $voucher->is_active) {
-                $diskon = ($voucher->tipe == 'nominal') ? $voucher->nilai : ($subtotal * $voucher->nilai / 100);
-                if ($diskon > $subtotal) $diskon = $subtotal;
+                $diskonVoucher = ($voucher->tipe == 'nominal') ? $voucher->nilai : ($subtotal * $voucher->nilai / 100);
             }
         }
 
+        // 2. Hitung Diskon Poin
+        $diskonPoin = 0;
+        $poinDigunakan = 0;
+        $pelanggan = $transaksi->pelanggan;
+
+        if ($pelanggan && $request->poin_tukar > 0) {
+            $nilaiPerPoin = Setting::where('key', 'loyalty_nilai_rupiah_per_poin')->value('value') ?? 0;
+            $maxPoin = $pelanggan->poin;
+            
+            // Pastikan tidak pakai poin lebih dari yang dimiliki
+            $poinDigunakan = min($request->poin_tukar, $maxPoin);
+            $diskonPoin = $poinDigunakan * $nilaiPerPoin;
+        }
+
+        // Total Diskon (Gabungan)
+        $totalDiskon = $diskonVoucher + $diskonPoin;
+        if ($totalDiskon > $subtotal) {
+            $totalDiskon = $subtotal; // Cap diskon max sebesar subtotal
+            // Opsional: Recalculate poin used jika kena cap, tapi biarkan dulu untuk simplifikasi
+        }
+
         $taxRate = Cache::rememberForever('ppn_tax_rate', fn() => 0.11);
-        $totalSetelahDiskon = $subtotal - $diskon;
+        $totalSetelahDiskon = $subtotal - $totalDiskon;
         $pajak = $totalSetelahDiskon * $taxRate;
         $grandTotal = round($totalSetelahDiskon + $pajak);
 
@@ -300,19 +440,34 @@ class PosController extends Controller
             
             $orderIdMidtrans = 'POS-' . $transaksi->id . '-' . time();
 
+            // 3. Hitung Poin yang DIDAPAT (Earned)
+            $poinDidapat = 0;
+            if ($pelanggan) {
+                $minTrxPoin = Setting::where('key', 'loyalty_min_transaksi')->value('value') ?? 50000;
+                $nominalPerPoin = Setting::where('key', 'loyalty_nominal_per_poin')->value('value') ?? 10000;
+
+                if ($grandTotal >= $minTrxPoin && $nominalPerPoin > 0) {
+                    $poinDidapat = floor($grandTotal / $nominalPerPoin);
+                }
+            }
+
             $transaksi->update([
                 'tanggal' => Carbon::now('Asia/Jakarta'),
                 'kasir_id' => Auth::id(),
                 'total' => $grandTotal,
-                'diskon' => $diskon,
+                'diskon' => $totalDiskon,
                 'pajak' => $pajak,
                 'metode_bayar' => $request->metode_bayar, 
                 'nominal_bayar' => $request->nominal_bayar, 
                 'kembalian' => $isTunai ? ($request->nominal_bayar - $grandTotal) : 0,
                 'status' => $statusAwal,
-                'catatan' => $orderIdMidtrans 
+                'catatan' => $orderIdMidtrans,
+                // Update kolom poin baru
+                'poin_earned' => $poinDidapat,
+                'poin_used' => $poinDigunakan
             ]);
 
+            // Update Stok & Poin Pelanggan
             foreach ($transaksi->details as $item) {
                 if ($item->produk->stok < $item->jumlah) {
                     throw new \Exception("Stok {$item->produk->nama_produk} tidak cukup!");
@@ -329,6 +484,17 @@ class PosController extends Controller
                     'keterangan' => 'Trx #' . $transaksi->id,
                     'user_id' => Auth::id()
                 ]);
+            }
+
+            // Update Poin Pelanggan (Hanya jika status selesai/tunai)
+            if ($isTunai && $pelanggan) {
+                if ($poinDigunakan > 0) {
+                    $pelanggan->poin -= $poinDigunakan;
+                }
+                if ($poinDidapat > 0) {
+                    $pelanggan->poin += $poinDidapat;
+                }
+                $pelanggan->recalculateLevel(); // Hitung ulang level (Silver/Gold)
             }
 
             if ($isTunai) {
@@ -355,7 +521,7 @@ class PosController extends Controller
                 ],
                 'customer_details' => [
                     'first_name' => $transaksi->pelanggan ? $transaksi->pelanggan->nama : 'Guest',
-                    'email' => $transaksi->pelanggan->email ?? 'customer@pos.com', // Menggunakan email pelanggan jika ada
+                    'email' => $transaksi->pelanggan->email ?? 'customer@pos.com', 
                 ],
                 'item_details' => [
                     [

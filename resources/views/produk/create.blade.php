@@ -31,9 +31,9 @@
                 </div>
 
                 <div>
-                    <label for="kode_barcode" class="block text-sm font-medium text-gray-700">Kode Barcode (Opsional)</label>
-                    <input type="text" name="kode_barcode" id="kode_barcode" value="{{ old('kode_barcode') }}"
-                           class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500">
+                    <label for="kode_barcode" class="block text-sm font-medium text-gray-700">Kode Barcode (Auto / Manual)</label>
+                    <input type="text" name="kode_barcode" id="kode_barcode" value="{{ old('kode_barcode', $autoBarcode) }}"
+                           class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500 font-mono font-bold tracking-wider text-sky-700 uppercase">
                 </div>
 
                 <div>

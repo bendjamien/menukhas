@@ -24,7 +24,7 @@
         @endphp
 
         <a href="{{ route('dashboard') }}" class="flex items-center gap-1 font-bold text-2xl tracking-wide hover:scale-105 transition-transform duration-300">
-            <span class="text-amber-500">{{ $firstWord }}</span>
+            <span class="text-yellow-500">{{ $firstWord }}</span>
             
             <span class="text-emerald-600">{{ $restWords }}</span>
         </a>
@@ -171,8 +171,16 @@
                 </button>
                 <ul x-show="open" x-transition.origin.top class="mt-1 space-y-1 px-2">
                     <li>
-                        <a href="{{ route('users.index') }}" class="block px-4 py-2 rounded-lg text-sm {{ request()->is('users*') ? 'bg-sky-100 text-sky-700' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
-                            Manajemen Akun
+                        <a href="{{ route('users.index') }}" class="relative flex items-center justify-between px-4 py-2 rounded-lg text-sm {{ request()->is('users*') ? 'bg-sky-100 text-sky-700' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
+                            <span>Manajemen Akun</span>
+                            @php
+                                $pendingPinCount = \App\Models\User::where('request_new_pin', true)->count();
+                            @endphp
+                            @if($pendingPinCount > 0)
+                                <span class="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white shadow-sm ring-2 ring-white">
+                                    {{ $pendingPinCount }}
+                                </span>
+                            @endif
                         </a>
                     </li>
                     <li>

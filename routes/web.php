@@ -65,6 +65,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/chat-ai', [ChatController::class, 'sendMessage'])->name('chat.send');
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::post('/profile/request-pin', [ProfileController::class, 'requestPinChange'])->name('profile.request_pin');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     
     Route::get('transaksi', [TransaksiController::class, 'index'])->name('transaksi.index');
@@ -79,6 +80,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware([\App\Http\Middleware\CheckRoleMiddleware::class . ':admin,kasir'])->group(function () {
         Route::get('pos/{transaksi?}', [PosController::class, 'index'])->name('pos.index');
         Route::get('pos-new-draft', [PosController::class, 'buatDraftBaru'])->name('pos.new_draft');
+        Route::get('pos-search-member', [PosController::class, 'searchMember'])->name('pos.search_member'); 
+        Route::post('pos/store-member', [PosController::class, 'storeNewMember'])->name('pos.store_member'); // Route Tambah Member via POS
+        Route::post('pos/scan', [PosController::class, 'scanBarcode'])->name('pos.scan'); // Route Scan Barcode
         Route::post('pos/add-item', [PosController::class, 'addItem'])->name('pos.add_item');
         Route::post('pos/update-item', [PosController::class, 'updateItem'])->name('pos.update_item');
         Route::post('pos/remove-item', [PosController::class, 'removeItem'])->name('pos.remove_item');
@@ -111,6 +115,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('laporan/pendapatan/excel', [LaporanPendapatanController::class, 'exportExcel'])->name('laporan.pendapatan.excel');
 
         Route::get('laporan/absensi', [App\Http\Controllers\LaporanAbsensiController::class, 'index'])->name('laporan.absensi');
+        Route::get('laporan/absensi/{user}', [App\Http\Controllers\LaporanAbsensiController::class, 'show'])->name('laporan.absensi.show');
+        Route::get('laporan/absensi/{user}/print', [App\Http\Controllers\LaporanAbsensiController::class, 'print'])->name('laporan.absensi.print');
     });
 
 
@@ -131,7 +137,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         
         Route::resource('users', UserController::class);
         Route::get('users/{id}/cetak-kartu', [UserController::class, 'cetakKartu'])->name('users.cetak_kartu');
+        Route::patch('users/{user}/approve-pin', [UserController::class, 'approvePin'])->name('users.approve_pin');
         Route::patch('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
+        Route::post('users/{user}/view-pin', [UserController::class, 'viewPin'])->name('users.view_pin');
+        Route::post('users/{user}/reset-pin', [UserController::class, 'resetPin'])->name('users.reset_pin');
         
         Route::post('vouchers', [VoucherController::class, 'store'])->name('vouchers.store');
         Route::delete('vouchers/{id}', [VoucherController::class, 'destroy'])->name('vouchers.destroy');

@@ -26,6 +26,20 @@ class ProfileController extends Controller
         return Redirect::route('profile.edit')->with('toast_success', 'Profil berhasil diperbarui!');
     }
 
+    public function requestPinChange(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'pin' => ['required', 'digits:6', 'numeric', 'unique:users,pin'],
+        ]);
+
+        $user = $request->user();
+        $user->pending_pin = $request->pin;
+        $user->request_new_pin = true;
+        $user->save();
+
+        return Redirect::route('profile.edit')->with('toast_success', 'Permintaan ganti PIN berhasil dikirim ke Admin!');
+    }
+
     public function destroy(Request $request): RedirectResponse
     {
         $request->validateWithBag('userDeletion', [
