@@ -57,8 +57,8 @@ class LaporanAbsensiController extends Controller
                            ->orderBy('tanggal', 'asc')
                            ->get();
         
-        $jamMasukSetting = DB::table('settings')->where('key', 'jam_masuk_kantor')->value('value') ?? '08:00';
-        $jamPulangSetting = DB::table('settings')->where('key', 'jam_pulang_kantor')->value('value') ?? '17:00';
+        $jamMasukSetting = Setting::where('key', 'jam_masuk_kantor')->value('value') ?? '08:00';
+        $jamPulangSetting = Setting::where('key', 'jam_pulang_kantor')->value('value') ?? '17:00';
 
         // Render partial view atau return JSON
         // Kita return JSON biar gampang di consume JS frontend
@@ -92,10 +92,10 @@ class LaporanAbsensiController extends Controller
             'total_menit_telat' => $absensis->sum('keterlambatan'),
         ];
 
-        $jamMasuk = DB::table('settings')->where('key', 'jam_masuk_kantor')->value('value') ?? '08:00';
-        $jamPulang = DB::table('settings')->where('key', 'jam_pulang_kantor')->value('value') ?? '17:00';
-        $logo = DB::table('settings')->where('key', 'company_logo')->value('value');
-        $companyName = DB::table('settings')->where('key', 'company_name')->value('value') ?? 'MenuKhas';
+        $jamMasuk = Setting::where('key', 'jam_masuk_kantor')->value('value') ?? '08:00';
+        $jamPulang = Setting::where('key', 'jam_pulang_kantor')->value('value') ?? '17:00';
+        $logo = Setting::where('key', 'company_logo')->value('value');
+        $companyName = Setting::where('key', 'company_name')->value('value') ?? 'MenuKhas';
 
         return view('laporan.cetak-absensi', compact('user', 'absensis', 'bulan', 'tahun', 'summary', 'jamMasuk', 'jamPulang', 'logo', 'companyName'));
     }

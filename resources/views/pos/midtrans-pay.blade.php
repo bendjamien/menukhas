@@ -98,7 +98,7 @@
 
     </div>
 
-    <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="Mid-client-cS3dQe6sXmslJWsj"></script>
+    <script src="https://app.sandbox.midtrans.com/snap/snap.js" data-client-key="{{ config('midtrans.client_key') }}"></script>
     
     <script type="text/javascript">
         const payButton = document.getElementById('pay-button');

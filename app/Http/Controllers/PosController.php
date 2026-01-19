@@ -508,11 +508,17 @@ class PosController extends Controller
                 return redirect()->route('transaksi.show', $transaksi)->with('toast_success', 'Transaksi Selesai!');
             }
 
-            // --- PERBAIKAN: MENGGUNAKAN ENV() AGAR TIDAK HARDCODE ---
-            Config::$serverKey = env('MIDTRANS_SERVER_KEY'); 
-            Config::$isProduction = env('MIDTRANS_IS_PRODUCTION', false);
+            // --- PERBAIKAN: MENGGUNAKAN CONFIG() ---
+            Config::$serverKey = config('midtrans.server_key'); 
+            Config::$isProduction = config('midtrans.is_production');
             Config::$isSanitized = true;
             Config::$is3ds = true;
+            // FIX: Bypass SSL certificate verification for local development (XAMPP)
+            // Menambahkan CURLOPT_HTTPHEADER kosong untuk mencegah error "Undefined array key 10023" di library Midtrans
+            Config::$curlOptions = [
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_HTTPHEADER => [] 
+            ];
 
             $params = [
                 'transaction_details' => [
@@ -547,8 +553,8 @@ class PosController extends Controller
 
     public function midtransCallback(Request $request)
     {
-        // --- PERBAIKAN: MENGGUNAKAN ENV() ---
-        $serverKey = env('MIDTRANS_SERVER_KEY'); 
+        // --- PERBAIKAN: MENGGUNAKAN CONFIG() ---
+        $serverKey = config('midtrans.server_key'); 
         
         $hashed = hash("sha512", $request->order_id . $request->status_code . $request->gross_amount . $serverKey);
 

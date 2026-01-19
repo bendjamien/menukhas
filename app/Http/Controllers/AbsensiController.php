@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Absensi;
+use App\Models\Setting;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -49,9 +50,9 @@ class AbsensiController extends Controller
             $todayDate = $now->format('Y-m-d');
 
             // Ambil Pengaturan
-            $jamMasukSetting = DB::table('settings')->where('key', 'jam_masuk_kantor')->value('value') ?? '08:00';
-            $jamPulangSetting = DB::table('settings')->where('key', 'jam_pulang_kantor')->value('value') ?? '17:00'; // Default jam 5 sore
-            $toleransiMenit = (int) (DB::table('settings')->where('key', 'toleransi_telat')->value('value') ?? 0);
+            $jamMasukSetting = Setting::where('key', 'jam_masuk_kantor')->value('value') ?? '08:00';
+            $jamPulangSetting = Setting::where('key', 'jam_pulang_kantor')->value('value') ?? '17:00'; // Default jam 5 sore
+            $toleransiMenit = (int) (Setting::where('key', 'toleransi_telat')->value('value') ?? 0);
 
             $absen = Absensi::where('user_id', $user->id)
                             ->where('tanggal', $todayDate)

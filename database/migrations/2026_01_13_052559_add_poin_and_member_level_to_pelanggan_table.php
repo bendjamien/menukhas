@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('pelanggan', function (Blueprint $table) {
-            $table->string('member_level')->default('bronze')->after('email');
-            $table->integer('poin')->default(0)->after('member_level');
+            if (!Schema::hasColumn('pelanggan', 'member_level')) {
+                $table->string('member_level')->default('bronze')->after('email');
+            }
+            if (!Schema::hasColumn('pelanggan', 'poin')) {
+                $table->integer('poin')->default(0)->after('member_level');
+            }
         });
     }
 

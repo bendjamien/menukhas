@@ -12,8 +12,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('transaksi', function (Blueprint $table) {
-            $table->integer('poin_earned')->default(0)->after('kembalian');
-            $table->integer('poin_used')->default(0)->after('poin_earned');
+            if (!Schema::hasColumn('transaksi', 'poin_earned')) {
+                $table->integer('poin_earned')->default(0)->after('kembalian');
+            }
+            if (!Schema::hasColumn('transaksi', 'poin_used')) {
+                $table->integer('poin_used')->default(0)->after('poin_earned');
+            }
         });
     }
 
