@@ -30,6 +30,7 @@ class PengaturanController extends Controller
             'loyalty_min_transaksi' => '10000',      // Min belanja 10rb baru dapat poin (biar ga rugi di trx kecil)
             'loyalty_nominal_per_poin' => '10000',   // Tiap kelipatan 10rb dapat 1 poin (mudah dihitung)
             'loyalty_nilai_rupiah_per_poin' => '200', // 1 Poin = Rp 200 (Total cashback sekitar 2%)
+            'stok_minimum' => '5',
         ];
 
         $settings = [];
@@ -68,6 +69,7 @@ class PengaturanController extends Controller
             'loyalty_min_transaksi' => 'required|numeric|min:0',
             'loyalty_nominal_per_poin' => 'required|numeric|min:1',
             'loyalty_nilai_rupiah_per_poin' => 'required|numeric|min:0',
+            'stok_minimum' => 'required|integer|min:0',
         ]);
 
         // LOGIKA UPLOAD LOGO

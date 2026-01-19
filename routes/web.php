@@ -44,21 +44,62 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // 1. DASHBOARD
     Route::get('/dashboard', function () {
         $today = Carbon::today('Asia/Jakarta');
+        
+        // --- 1. Statistik Utama ---
         $jumlahPelanggan = Pelanggan::count();
         $jumlahProduk = Produk::count();
         
+        // Transaksi Hari Ini (Selesai)
         $transaksiHariIni = Transaksi::whereDate('tanggal', $today)
                                      ->where('status', 'selesai') 
                                      ->get();
-        
         $totalPendapatanHariIni = $transaksiHariIni->sum('total');
         $jumlahTransaksiHariIni = $transaksiHariIni->count();
+
+        // --- 2. Peringatan Stok Menipis (Limit 5) ---
+        $batasStokMenipis = \App\Models\Setting::where('key', 'stok_minimum')->value('value') ?? 5;
+        $stokMenipis = Produk::where('stok', '<=', $batasStokMenipis)->orderBy('stok', 'asc')->limit(5)->get();
+
+        // --- 3. Transaksi Terbaru (Limit 5) ---
+        $transaksiTerbaru = Transaksi::with('pelanggan', 'kasir')
+                                     ->where('status', 'selesai')
+                                     ->latest('tanggal')
+                                     ->limit(5)
+                                     ->get();
+
+        // --- 4. Grafik Pendapatan 7 Hari Terakhir ---
+        $chartLabels = [];
+        $chartValues = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = Carbon::now('Asia/Jakarta')->subDays($i);
+            $chartLabels[] = $date->format('d M');
+            $chartValues[] = Transaksi::whereDate('tanggal', $date)
+                                      ->where('status', 'selesai')
+                                      ->sum('total');
+        }
+
+        // --- 5. Produk Terlaris (Top 5) ---
+        // Menggunakan join atau relation counting yang efisien
+        $produkTerlaris = \Illuminate\Support\Facades\DB::table('transaksi_detail')
+            ->join('produk', 'transaksi_detail.produk_id', '=', 'produk.id')
+            ->join('transaksi', 'transaksi_detail.transaksi_id', '=', 'transaksi.id')
+            ->where('transaksi.status', 'selesai')
+            ->select('produk.nama_produk', \Illuminate\Support\Facades\DB::raw('SUM(transaksi_detail.jumlah) as total_sold'))
+            ->groupBy('produk.id', 'produk.nama_produk')
+            ->orderByDesc('total_sold')
+            ->limit(5)
+            ->get();
 
         return view('dashboard', [
             'jumlahPelanggan' => $jumlahPelanggan,
             'jumlahProduk' => $jumlahProduk,
             'totalPendapatanHariIni' => $totalPendapatanHariIni,
             'jumlahTransaksiHariIni' => $jumlahTransaksiHariIni,
+            'stokMenipis' => $stokMenipis,
+            'transaksiTerbaru' => $transaksiTerbaru,
+            'chartLabels' => $chartLabels,
+            'chartValues' => $chartValues,
+            'produkTerlaris' => $produkTerlaris
         ]);
     })->name('dashboard');
 

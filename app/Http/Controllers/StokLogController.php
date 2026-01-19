@@ -13,24 +13,46 @@ class StokLogController extends Controller
 {
     public function index(Request $request) 
     {
+        $query = StokLog::with(['produk', 'user']);
 
-        $logs = StokLog::with(['produk', 'user'])
-                        ->orderBy('tanggal', 'desc')
-                        ->paginate(20);
+        // Filter Produk
+        if ($request->filled('produk_id')) {
+            $query->where('produk_id', $request->produk_id);
+        }
+
+        // Filter Tipe (Masuk/Keluar)
+        if ($request->filled('tipe')) {
+            $query->where('tipe', $request->tipe);
+        }
+
+        // Filter Tanggal
+        if ($request->filled('start_date') && $request->filled('end_date')) {
+            $query->whereBetween('tanggal', [$request->start_date . ' 00:00:00', $request->end_date . ' 23:59:59']);
+        }
+
+        $logs = $query->orderBy('tanggal', 'desc')->paginate(20)->withQueryString();
+
+        // Statistik Ringkasan (Bulan Ini)
+        $bulanIni = Carbon::now()->startOfMonth();
+        $totalMasuk = StokLog::where('tipe', 'masuk')->where('tanggal', '>=', $bulanIni)->sum('jumlah');
+        $totalKeluar = StokLog::where('tipe', 'keluar')->where('tanggal', '>=', $bulanIni)->sum('jumlah');
+        $aktivitasBulanIni = StokLog::where('tanggal', '>=', $bulanIni)->count();
+
+        // Ambil data produk terpilih untuk fitur "Cek Stok"
+        $selectedProduk = null;
+        if ($request->filled('produk_id')) {
+            $selectedProduk = Produk::find($request->produk_id);
+        }
 
         $produksForSearch = Produk::orderBy('nama_produk', 'asc')->get();
 
-        $selectedProdukId = $request->query('produk_search_id'); 
-        $selectedProduk = null;
-        if ($selectedProdukId) {
-            $selectedProduk = Produk::find($selectedProdukId);
-        }
-        
         return view('stok_log.index', compact(
             'logs', 
             'produksForSearch', 
-            'selectedProdukId',
-            'selectedProduk'    
+            'totalMasuk',
+            'totalKeluar',
+            'aktivitasBulanIni',
+            'selectedProduk'
         ));
     }
 

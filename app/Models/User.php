@@ -28,6 +28,7 @@ class User extends Authenticatable
         'pin',
         'request_new_pin',
         'pending_pin',
+        'avatar',
     ];
 
     /**

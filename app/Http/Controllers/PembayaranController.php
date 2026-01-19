@@ -16,14 +16,8 @@ class PembayaranController extends Controller
 
         if ($search) {
             $query->where(function($q) use ($search) {
-                // 1. Bersihkan input dari '#'
                 $cleanSearch = str_replace('#', '', $search);
-
-                // 2. Pencarian LIKE normal (agar input "1" bisa ketemu "1", "10", "100")
                 $q->where('transaksi_id', 'like', "%{$cleanSearch}%");
-
-                // 3. Pencarian Exact Match untuk menangani '0001' -> '1'
-                // Cek apakah input bersih adalah angka valid
                 if (is_numeric($cleanSearch)) {
                     $intValue = (int) $cleanSearch;
                     $q->orWhere('transaksi_id', $intValue);
@@ -34,7 +28,13 @@ class PembayaranController extends Controller
         $pembayarans = $query->orderBy('id', 'desc')
                              ->paginate(20)
                              ->withQueryString();
+
+        // Statistik Pembayaran (Bulan Ini)
+        $bulanIni = \Carbon\Carbon::now()->startOfMonth();
+        $totalPendapatan = Pembayaran::where('created_at', '>=', $bulanIni)->sum('jumlah');
+        $transaksiTunai = Pembayaran::where('created_at', '>=', $bulanIni)->where('metode', 'Tunai')->count();
+        $transaksiDigital = Pembayaran::where('created_at', '>=', $bulanIni)->where('metode', '!=', 'Tunai')->count();
                                 
-        return view('pembayaran.index', compact('pembayarans'));
+        return view('pembayaran.index', compact('pembayarans', 'totalPendapatan', 'transaksiTunai', 'transaksiDigital'));
     }
 }

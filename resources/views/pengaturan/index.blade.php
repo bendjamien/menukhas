@@ -92,6 +92,26 @@
                             </div>
                         </div>
                     </div>
+
+                    <!-- PENGATURAN INVENTARIS -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="p-2 bg-red-100 rounded-lg text-red-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                </svg>
+                            </div>
+                            <h2 class="text-lg font-bold text-gray-800">Inventaris</h2>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Batas Stok Menipis</label>
+                            <div class="flex items-center">
+                                <input type="number" name="stok_minimum" value="{{ old('stok_minimum', $settings['stok_minimum'] ?? '5') }}" class="block w-full border-gray-300 rounded-l-lg shadow-sm focus:ring-sky-500 focus:border-sky-500">
+                                <span class="inline-flex items-center px-3 py-2 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">Unit</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Produk dengan stok di bawah angka ini akan ditandai "Menipis".</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="space-y-6">

@@ -22,6 +22,8 @@ class ProfileUpdateRequest extends FormRequest
 
             'no_hp' => ['nullable', 'string', 'max:20'],
 
+            'avatar' => ['nullable', 'image', 'max:2048'], // Max 2MB
+
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class)->ignore($this->user()->id)],
         ];
     }

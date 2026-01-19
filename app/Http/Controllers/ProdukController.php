@@ -25,11 +25,20 @@ class ProdukController extends Controller
             });
         }
 
-        $produks = $query->orderBy('id', 'asc') 
+        $produks = $query->orderBy('stok', 'asc') // Urutkan stok terkecil dulu agar admin aware
                          ->paginate(10)
                          ->withQueryString(); 
+
+        // Statistik untuk Header Dashboard Stok
+        $totalProduk = Produk::count();
+        $totalAset = Produk::sum(\Illuminate\Support\Facades\DB::raw('harga_beli * stok'));
         
-        return view('produk.index', compact('produks', 'search'));
+        $batasStokMenipis = \App\Models\Setting::where('key', 'stok_minimum')->value('value') ?? 5;
+        $stokMenipis = Produk::where('stok', '<=', $batasStokMenipis)->where('stok', '>', 0)->count();
+        
+        $stokHabis = Produk::where('stok', 0)->count();
+        
+        return view('produk.index', compact('produks', 'search', 'totalProduk', 'totalAset', 'stokMenipis', 'stokHabis', 'batasStokMenipis'));
     }
 
  

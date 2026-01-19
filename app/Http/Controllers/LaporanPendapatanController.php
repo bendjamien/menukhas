@@ -41,6 +41,19 @@ class LaporanPendapatanController extends Controller
         $totalFiltered = (clone $query)->sum('total');
         $jumlahFiltered = (clone $query)->count();
 
+        // Data Grafik Harian (Group by Date)
+        $chartQuery = clone $query;
+        $chartData = $chartQuery->select(
+                            DB::raw('DATE(tanggal) as date'), 
+                            DB::raw('SUM(total) as total')
+                        )
+                        ->groupBy('date')
+                        ->orderBy('date', 'asc')
+                        ->get();
+        
+        $dailyLabels = $chartData->pluck('date')->map(fn($d) => Carbon::parse($d)->format('d M'));
+        $dailyTotals = $chartData->pluck('total');
+
         $transaksis = $query->orderBy('tanggal', 'desc') // Urutkan terbaru dulu
                             ->paginate(15)
                             ->withQueryString(); 
@@ -53,7 +66,9 @@ class LaporanPendapatanController extends Controller
             'totalFiltered',  
             'jumlahFiltered',
             'bulan', 
-            'tahun'
+            'tahun',
+            'dailyLabels',
+            'dailyTotals'
         ));
     }
 
@@ -76,8 +91,17 @@ class LaporanPendapatanController extends Controller
         $totalPendapatan = $transaksis->sum('total');
 
         $settings = \App\Models\Setting::all()->pluck('value', 'key');
+        
+        // Ambil Nama Owner
+        $ownerUser = \App\Models\User::where('role', 'owner')->first();
+        $ownerName = $ownerUser ? $ownerUser->name : 'Pemilik Toko';
 
-        return view('laporan.cetak-pendapatan', compact('transaksis', 'bulan', 'tahun', 'totalPendapatan', 'settings'));
+        // Ambil Kota dari Alamat (Ambil bagian terakhir setelah koma)
+        $alamat = $settings['company_address'] ?? 'Jakarta';
+        $parts = explode(',', $alamat);
+        $kota = trim(end($parts));
+
+        return view('laporan.cetak-pendapatan', compact('transaksis', 'bulan', 'tahun', 'totalPendapatan', 'settings', 'ownerName', 'kota'));
     }
 
     public function exportExcel(Request $request)
@@ -99,11 +123,20 @@ class LaporanPendapatanController extends Controller
         
         $settings = \App\Models\Setting::all()->pluck('value', 'key');
         
+        // Ambil Nama Owner
+        $ownerUser = \App\Models\User::where('role', 'owner')->first();
+        $ownerName = $ownerUser ? $ownerUser->name : 'Pemilik Toko';
+
+        // Ambil Kota dari Alamat
+        $alamat = $settings['company_address'] ?? 'Jakarta';
+        $parts = explode(',', $alamat);
+        $kota = trim(end($parts));
+
         $periode = ($bulan && $bulan != 'all' ? Carbon::createFromDate(null, $bulan, 1)->isoFormat('MMMM') : 'Semua Bulan') . ' ' . $tahun;
         $filename = "Laporan_Pendapatan_" . str_replace(' ', '_', $periode) . ".xls";
 
-        return response()->streamDownload(function() use ($transaksis, $totalPendapatan, $settings, $periode) {
-            echo view('laporan.excel-pendapatan', compact('transaksis', 'totalPendapatan', 'settings', 'periode'));
+        return response()->streamDownload(function() use ($transaksis, $totalPendapatan, $settings, $periode, $ownerName, $kota) {
+            echo view('laporan.excel-pendapatan', compact('transaksis', 'totalPendapatan', 'settings', 'periode', 'ownerName', 'kota'));
         }, $filename);
     }
 }

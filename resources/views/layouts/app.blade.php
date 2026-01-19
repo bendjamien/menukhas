@@ -84,10 +84,14 @@
                             </div>
                         </div>
 
-                        <div x-data="{ open: false }" @click.away="open = false" class="relative ml-4">
+                        <div x-data="{ open: false }" @click.outside="open = false" class="relative ml-4">
                             <button @click="open = !open" class="flex items-center space-x-2 focus:outline-none">
-                                <div class="w-10 h-10 bg-sky-500 hover:bg-sky-600 rounded-full flex items-center justify-center text-white font-bold shadow-md shadow-sky-200 transform hover:scale-105 transition duration-200">
-                                    {{ substr(Auth::user()->name, 0, 1) }}
+                                <div class="w-10 h-10 bg-sky-500 hover:bg-sky-600 rounded-full flex items-center justify-center text-white font-bold shadow-md shadow-sky-200 transform hover:scale-105 transition duration-200 overflow-hidden border-2 border-white">
+                                    @if(Auth::user()->avatar)
+                                        <img src="{{ asset('storage/' . Auth::user()->avatar) }}" alt="{{ Auth::user()->name }}" class="w-full h-full object-cover">
+                                    @else
+                                        {{ substr(Auth::user()->name, 0, 1) }}
+                                    @endif
                                 </div>
                                 <span class="hidden md:block text-sm font-medium text-gray-700">{{ Auth::user()->name }}</span>
                             </button>
