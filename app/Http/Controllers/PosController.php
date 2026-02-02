@@ -128,7 +128,12 @@ class PosController extends Controller
         }
 
         $this->recalculateTransactionTotal($transaksi);
-        return redirect()->route('pos.index', ['transaksi' => $transaksi->id]);
+        
+        $detailId = $item ? $item->id : $transaksi->details()->where('produk_id', $produk->id)->first()->id;
+
+        return redirect()->route('pos.index', ['transaksi' => $transaksi->id])
+            ->with('highlight_id', $detailId)
+            ->with('toast_success', "<b>{$produk->nama_produk}</b> (+1) ditambahkan!");
     }
 
     public function updateItem(Request $request)
@@ -657,5 +662,61 @@ class PosController extends Controller
         }
 
         return redirect()->route('pos.index');
+    }
+
+    public function checkStatus(Transaksi $transaksi)
+    {
+        // 1. Jika di DB sudah selesai/batal, langsung return
+        if ($transaksi->status == 'selesai' || $transaksi->status == 'batal') {
+            return response()->json(['status' => $transaksi->status]);
+        }
+
+        // 2. Jika masih pending, Cek Langsung ke Midtrans (Server-to-Server)
+        // Ini mengatasi masalah Webhook tidak masuk di Localhost
+        try {
+            Config::$serverKey = config('midtrans.server_key');
+            Config::$isProduction = config('midtrans.is_production');
+            
+            // Order ID tersimpan di kolom 'catatan' saat checkout
+            $orderId = $transaksi->catatan; 
+            
+            if($orderId) {
+                $status = \Midtrans\Transaction::status($orderId);
+                $transactionStatus = $status->transaction_status;
+                $fraudStatus = $status->fraud_status ?? null;
+
+                if ($transactionStatus == 'capture') {
+                    if ($fraudStatus == 'challenge') {
+                        // Challenge
+                    } else {
+                        $this->markAsSuccess($transaksi, 'Midtrans-AutoCheck');
+                    }
+                } else if ($transactionStatus == 'settlement') {
+                    $this->markAsSuccess($transaksi, 'Midtrans-AutoCheck');
+                } else if ($transactionStatus == 'cancel' || $transactionStatus == 'deny' || $transactionStatus == 'expire') {
+                    // Opsional: Bisa otomatis batalkan jika expire
+                }
+            }
+        } catch (\Exception $e) {
+            // Abaikan error koneksi ke Midtrans, gunakan status DB saja
+        }
+
+        return response()->json(['status' => $transaksi->status->fresh()->status ?? $transaksi->status]);
+    }
+
+    private function markAsSuccess($transaksi, $ref) {
+        if ($transaksi->status != 'selesai') {
+            $transaksi->update([
+                'status' => 'selesai',
+                'metode_bayar' => 'Midtrans'
+            ]);
+            
+            Pembayaran::create([
+                'transaksi_id' => $transaksi->id,
+                'metode' => 'Midtrans',
+                'jumlah' => $transaksi->total,
+                'referensi' => $ref
+            ]);
+        }
     }
 }

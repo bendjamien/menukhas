@@ -8,7 +8,7 @@
                     <h2 class="text-2xl font-bold text-gray-800">Riwayat Stok</h2>
                     <p class="text-sm text-gray-500 mt-1">Lacak pergerakan inventaris dan cek ketersediaan barang.</p>
                 </div>
-                <a href="{{ route('stok_log.create') }}" class="inline-flex items-center px-4 py-2 bg-indigo-600 border border-transparent rounded-xl font-semibold text-sm text-white hover:bg-indigo-700 active:bg-indigo-900 focus:outline-none focus:ring ring-indigo-300 transition ease-in-out duration-150 shadow-lg shadow-indigo-200">
+                <a href="{{ route('stok_log.create') }}" class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-xl font-semibold text-sm text-white hover:bg-blue-700 active:bg-blue-900 focus:outline-none focus:ring ring-blue-300 transition ease-in-out duration-150 shadow-lg shadow-blueoke -200">
                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                     Catat Barang Masuk
                 </a>

@@ -158,6 +158,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('pos/checkout/{transaksi}', [PosController::class, 'storeCheckout'])->name('pos.checkout.store');
         Route::get('pos/payment-success/{transaksi}', [PosController::class, 'handlePaymentSuccess'])->name('pos.payment_success');
         Route::get('pos/cancel-pending/{transaksi}', [PosController::class, 'cancelPendingTransaction'])->name('pos.cancel_pending');
+        Route::get('pos/check-status/{transaksi}', [PosController::class, 'checkStatus'])->name('pos.check_status');
         Route::post('pos/check-voucher', [PosController::class, 'checkVoucher'])->name('pos.check_voucher');
     });
 

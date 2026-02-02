@@ -311,15 +311,17 @@
         </script>
 
         <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
-        @if (session('toast_success'))
-            <div x-data x-init="Toastify({ text: '{{ session('toast_success') }}', duration: 3000, gravity: 'top', position: 'right', style: { background: 'linear-gradient(to right, #38bdf8, #3b82f6)', borderRadius: '0.5rem' } }).showToast();"></div>
-        @endif
-        @if (session('toast_danger'))
-            <div x-data x-init="Toastify({ text: '{{ session('toast_danger') }}', duration: 3000, gravity: 'top', position: 'right', style: { background: 'linear-gradient(to right, #ef4444, #dc2626)', borderRadius: '0.5rem' } }).showToast();"></div>
-        @endif
-        @if ($errors->any())
-            <div x-data x-init="Toastify({ text: '{{ $errors->first() }}', duration: 3000, gravity: 'top', position: 'right', style: { background: 'linear-gradient(to right, #ef4444, #dc2626)', borderRadius: '0.5rem' } }).showToast();"></div>
-        @endif
+            @if (session('toast_success'))
+                <div x-data x-init="Toastify({ text: `{!! session('toast_success') !!}`, duration: 3000, gravity: 'top', position: 'right', escapeMarkup: false, style: { background: 'linear-gradient(to right, #38bdf8, #3b82f6)', borderRadius: '0.5rem' } }).showToast();"></div>
+            @endif
+        
+            @if (session('toast_danger'))
+                <div x-data x-init="Toastify({ text: `{!! session('toast_danger') !!}`, duration: 3000, gravity: 'top', position: 'right', escapeMarkup: false, style: { background: 'linear-gradient(to right, #ef4444, #dc2626)', borderRadius: '0.5rem' } }).showToast();"></div>
+            @endif
+        
+            @if ($errors->any())
+                <div x-data x-init="Toastify({ text: `{{ $errors->first() }}`, duration: 3000, gravity: 'top', position: 'right', style: { background: 'linear-gradient(to right, #ef4444, #dc2626)', borderRadius: '0.5rem' } }).showToast();"></div>
+            @endif
         
     </body>
 </html>
