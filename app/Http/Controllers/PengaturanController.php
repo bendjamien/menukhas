@@ -92,6 +92,12 @@ class PengaturanController extends Controller
             unset($validated['company_logo']);
         }
 
+        // Ambil tab aktif (default 'umum' jika tidak ada)
+        $activeTab = $request->input('active_tab', 'umum');
+        
+        // Hapus active_tab dari array validated agar tidak error saat loop simpan setting
+        unset($validated['active_tab']);
+
         foreach ($validated as $key => $value) {
             if ($key == 'ppn_tax_rate') {
                 $value = $value / 100;
@@ -108,6 +114,7 @@ class PengaturanController extends Controller
         Cache::forget('all_settings'); 
 
         return Redirect::route('pengaturan.index')
+                         ->with('active_tab', $activeTab) // KEMBALIKAN TAB YANG AKTIF
                          ->with('toast_success', 'Pengaturan berhasil diperbarui!');
     }
 }

@@ -2,48 +2,54 @@
 
 namespace App\Providers;
 
-use Illuminate\Cache\RateLimiting\Limit;
-use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\Route;
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Schema;
+use App\Models\Produk;
+use App\Models\Setting;
 
-class RouteServiceProvider extends ServiceProvider
+class AppServiceProvider extends ServiceProvider
 {
     /**
-     * The path to your application's "home" route.
-     *
-     * Typically, users are redirected here after authentication.
-     *
-     * @var string
+     * Register any application services.
      */
-    public const HOME = '/dashboard'; // <-- INI BAGIAN YANG PENTING
+    public function register(): void
+    {
+        //
+    }
 
     /**
-     * The controller namespace for the application.
-     *
-     * When present, controller route declarations will automatically be prefixed with this namespace.
-     *
-     * @var string|null
-     */
-    // protected $namespace = 'App\\Http\\Controllers';
-
-    /**
-     * Define your route model bindings, pattern filters, and other route configuration.
+     * Bootstrap any application services.
      */
     public function boot(): void
     {
-        RateLimiter::for('api', function (Request $request) {
-            return Limit::perMinute(60)->by($request->user()?->id ?: $request->ip());
-        });
+        Schema::defaultStringLength(191);
 
-        $this->routes(function () {
-            Route::middleware('api')
-                ->prefix('api')
-                ->group(base_path('routes/api.php'));
+        // Share Global Notifications to Layout
+        View::composer('layouts.app', function ($view) {
+            $globalNotifs = [];
 
-            Route::middleware('web')
-                ->group(base_path('routes/web.php'));
+            try {
+                // 1. Cek Stok Menipis
+                if (Schema::hasTable('produk') && Schema::hasTable('settings')) {
+                    $batasStok = Setting::where('key', 'stok_minimum')->value('value') ?? 5;
+                    $stokMenipis = Produk::where('stok', '<=', $batasStok)->count();
+
+                    if ($stokMenipis > 0) {
+                        $globalNotifs[] = [
+                            'title' => 'Stok Menipis!',
+                            'message' => "Ada {$stokMenipis} produk dengan stok rendah.",
+                            'time' => 'Sekarang',
+                            'type' => 'warning', // warning, info, danger
+                            'link' => route('dashboard') // Arahkan ke dashboard untuk liat detail
+                        ];
+                    }
+                }
+            } catch (\Exception $e) {
+                // Silent fail jika tabel belum siap (saat migrasi awal)
+            }
+
+            $view->with('globalNotifs', $globalNotifs);
         });
     }
 }

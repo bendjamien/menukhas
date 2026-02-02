@@ -31,41 +31,56 @@
             <div class="bg-white rounded-lg shadow overflow-hidden border border-gray-100">
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-3 p-3 h-[65vh] overflow-y-auto custom-scrollbar content-start">
                     @forelse ($produks as $produk)
-                        <form action="{{ route('pos.add_item') }}" method="POST" class="h-full">
-                            @csrf
-                            <input type="hidden" name="produk_id" value="{{ $produk->id }}">
-                            <input type="hidden" name="transaksi_id" value="{{ $activeDraft->id }}">
-                            
-                            <button type="submit" 
-                                    class="group w-full text-left bg-white border border-gray-200 rounded-xl hover:shadow-md hover:border-sky-500 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-sky-500 relative overflow-hidden h-full flex flex-col">
+                        <div x-data="{ qty: 1 }" class="h-full">
+                            <form action="{{ route('pos.add_item') }}" method="POST" class="h-full flex flex-col bg-white border border-gray-200 rounded-xl hover:shadow-lg transition-all duration-300 group overflow-hidden">
+                                @csrf
+                                <input type="hidden" name="produk_id" value="{{ $produk->id }}">
+                                <input type="hidden" name="transaksi_id" value="{{ $activeDraft->id }}">
+                                <input type="hidden" name="qty" x-model="qty">
                                 
-                                <div class="h-20 w-full bg-gray-50 flex items-center justify-center group-hover:bg-sky-50 transition-colors relative">
+                                <!-- Product Image / Placeholder -->
+                                <div class="h-24 w-full bg-gray-50 flex items-center justify-center relative group-hover:bg-sky-50 transition-colors shrink-0">
                                     <svg class="w-8 h-8 text-gray-300 group-hover:text-sky-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                    
-                                    <span class="absolute top-1 right-1 text-[10px] font-semibold text-gray-500 bg-white/90 px-1.5 py-0.5 rounded shadow-sm border border-gray-100">
+                                    <span class="absolute top-2 right-2 text-[9px] font-bold text-gray-500 bg-white/90 px-2 py-0.5 rounded-full shadow-sm border border-gray-100">
                                         {{ $produk->kategori->nama ?? 'Umum' }}
                                     </span>
                                 </div>
                                 
+                                <!-- Body -->
                                 <div class="p-3 flex flex-col justify-between flex-grow">
-                                    <div>
-                                        <h3 class="text-sm font-bold text-gray-800 leading-tight line-clamp-2 group-hover:text-sky-600 transition-colors">
+                                    <div class="mb-3">
+                                        <h3 class="text-sm font-bold text-gray-800 leading-tight line-clamp-2 mb-1 group-hover:text-sky-600 transition-colors" title="{{ $produk->nama_produk }}">
                                             {{ $produk->nama_produk }}
                                         </h3>
-                                        <p class="text-[10px] text-gray-400 mt-1">Stok: {{ $produk->stok }}</p>
-                                    </div>
-                                    
-                                    <div class="mt-2 flex items-end justify-between border-t border-dashed border-gray-200 pt-2">
-                                        <span class="text-sm font-extrabold text-gray-900">
-                                            Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}
-                                        </span>
-                                        <div class="w-6 h-6 rounded-full bg-sky-50 text-sky-600 flex items-center justify-center group-hover:bg-sky-500 group-hover:text-white transition-colors">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                        <div class="flex justify-between items-center">
+                                            <p class="text-[10px] text-gray-400 font-medium">Stok: {{ $produk->stok }}</p>
+                                            <span class="text-sm font-black text-gray-900">
+                                                Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}
+                                            </span>
                                         </div>
                                     </div>
+                                    
+                                    <!-- Qty Control & Add Button -->
+                                    <div class="flex items-center justify-between gap-2 mt-auto pt-3 border-t border-dashed border-gray-100">
+                                        <!-- Stepper -->
+                                        <div class="flex items-center bg-gray-100 rounded-lg p-0.5 w-24 shadow-inner">
+                                            <button type="button" @click="if(qty > 1) qty--" class="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-white rounded-md transition-all font-bold disabled:opacity-50">
+                                                -
+                                            </button>
+                                            <input type="number" x-model="qty" min="1" max="{{ $produk->stok }}" class="w-full text-center bg-transparent border-none p-0 text-xs font-bold text-gray-800 focus:ring-0 appearance-none h-7">
+                                            <button type="button" @click="if(qty < {{ $produk->stok }}) qty++" class="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-green-600 hover:bg-white rounded-md transition-all font-bold">
+                                                +
+                                            </button>
+                                        </div>
+
+                                        <!-- Add Button -->
+                                        <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white p-2 rounded-lg shadow-md shadow-sky-200 transition-all active:scale-95 flex-shrink-0" title="Tambah ke Keranjang">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                                        </button>
+                                    </div>
                                 </div>
-                            </button>
-                        </form>
+                            </form>
+                        </div>
                     @empty
                         <div class="col-span-full flex flex-col items-center justify-center text-gray-400 py-20">
                             <svg class="w-16 h-16 mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -109,11 +124,11 @@
                 <div class="flex-1 min-h-0 flex flex-col justify-center items-center p-4 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 mb-4">
                     <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center relative mb-2 shadow-sm border border-slate-100 shrink-0">
                         <svg class="w-7 h-7 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
-                        @if($activeDraft->details->sum('jumlah') > 0)
-                            <div class="absolute -top-1 -right-1 w-7 h-7 bg-sky-600 rounded-full flex items-center justify-center text-white font-black text-[10px] shadow-lg border-2 border-white animate-bounce">
-                                {{ $activeDraft->details->sum('jumlah') }}
-                            </div>
-                        @endif
+                        
+                        <div id="cart-count-badge" 
+                             class="absolute -top-1 -right-1 w-7 h-7 bg-sky-600 rounded-full flex items-center justify-center text-white font-black text-[10px] shadow-lg border-2 border-white animate-bounce {{ $activeDraft->details->sum('jumlah') > 0 ? '' : 'hidden' }}">
+                            {{ $activeDraft->details->sum('jumlah') }}
+                        </div>
                     </div>
                     <div class="text-center shrink-0">
                         <h3 class="text-sm font-bold text-slate-700 leading-tight">Pesanan Tersimpan</h3>
@@ -126,11 +141,11 @@
                     <div class="space-y-0.5">
                         <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                             <span>Subtotal</span>
-                            <span>Rp {{ number_format($activeDraft->total, 0, ',', '.') }}</span>
+                            <span id="sidebar-cart-subtotal">Rp {{ number_format($activeDraft->total, 0, ',', '.') }}</span>
                         </div>
                         <div class="flex justify-between text-2xl font-black text-sky-600 tracking-tighter">
                             <span>Total</span>
-                            <span>Rp {{ number_format($activeDraft->total, 0, ',', '.') }}</span>
+                            <span id="sidebar-cart-total">Rp {{ number_format($activeDraft->total, 0, ',', '.') }}</span>
                         </div>
                     </div>
 
@@ -219,7 +234,7 @@
                     </thead>
                     <tbody class="divide-y divide-gray-100">
                         @forelse ($activeDraft->details as $item)
-                        <tr class="hover:bg-sky-50/50 transition-colors group">
+                        <tr class="hover:bg-sky-50/50 transition-colors group" x-data="{ currentQty: {{ $item->jumlah }} }">
                             <td class="py-4 px-4">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center text-sky-600 font-bold text-xs shrink-0">
@@ -227,7 +242,7 @@
                                     </div>
                                     <div>
                                         <div class="font-bold text-gray-800">{{ $item->produk->nama_produk }}</div>
-                                        <div class="text-xs text-gray-500">{{ $item->produk->kategori->nama ?? '-' }} | Kode: {{ $item->produk->kode_barcode ?? '-' }}</div>
+                                        <div class="text-xs text-gray-500">{{ $item->produk->kategori->nama ?? '-' }} | Stok: {{ $item->produk->stok + $item->jumlah }}</div>
                                     </div>
                                 </div>
                             </td>
@@ -235,11 +250,25 @@
                                 Rp {{ number_format($item->harga_satuan, 0, ',', '.') }}
                             </td>
                             <td class="py-4 px-4 text-center">
-                                <span class="inline-flex items-center justify-center w-12 h-10 bg-gray-100 rounded-lg font-bold text-gray-800 border border-gray-200">
-                                    {{ $item->jumlah }}
-                                </span>
+                                <div class="inline-flex items-center bg-white border border-gray-200 rounded-lg shadow-sm">
+                                    <button type="button" 
+                                            @click="if(currentQty > 1) { currentQty--; updateItemQty({{ $item->id }}, currentQty); }" 
+                                            class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-l-lg transition-colors disabled:opacity-50"
+                                            :disabled="currentQty <= 1">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M20 12H4"></path></svg>
+                                    </button>
+                                    
+                                    <input type="text" x-model="currentQty" readonly 
+                                           class="w-10 h-8 text-center border-none p-0 text-sm font-bold text-gray-800 focus:ring-0 cursor-default">
+                                    
+                                    <button type="button" 
+                                            @click="if(currentQty < {{ $item->produk->stok + $item->jumlah }}) { currentQty++; updateItemQty({{ $item->id }}, currentQty); } else { Toastify({ text: 'Stok habis!', duration: 2000, style: { background: '#ef4444' } }).showToast(); }" 
+                                            class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-r-lg transition-colors">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
+                                    </button>
+                                </div>
                             </td>
-                            <td class="py-4 px-4 text-right font-bold text-gray-800 font-mono">
+                            <td class="py-4 px-4 text-right font-bold text-gray-800 font-mono" id="item-subtotal-{{ $item->id }}">
                                 Rp {{ number_format($item->subtotal, 0, ',', '.') }}
                             </td>
                             <td class="py-4 px-4 text-center">
@@ -512,18 +541,32 @@
             .then(response => response.json())
             .then(data => {
                 if(data.status === 'success') {
-                    // Update Item Subtotal
+                    // 1. Update Item Subtotal (Inside Modal)
                     const itemSubtotalEl = document.getElementById('item-subtotal-' + detailId);
                     if(itemSubtotalEl) itemSubtotalEl.innerText = 'Rp ' + data.item_subtotal;
 
-                    // Update Cart Total & Subtotal
-                    const cartSubtotalEl = document.getElementById('cart-subtotal');
-                    const cartTotalEl = document.getElementById('cart-total');
+                    // 2. Update Modal Totals
+                    const cartSubtotalEl = document.getElementById('cart-subtotal'); // ID ini mungkin perlu ditambahkan di modal jika belum ada
+                    const cartTotalEl = document.getElementById('cart-total'); // ID ini mungkin perlu ditambahkan di modal jika belum ada
                     
-                    if(cartSubtotalEl) cartSubtotalEl.innerText = 'Rp ' + data.transaksi_total;
-                    if(cartTotalEl) cartTotalEl.innerText = 'Rp ' + data.transaksi_total;
+                    // 3. Update Sidebar Totals (Outside Modal) - SINKRONISASI PENTING
+                    const sidebarTotal = document.getElementById('sidebar-cart-total');
+                    const sidebarSubtotal = document.getElementById('sidebar-cart-subtotal');
+                    
+                    if(sidebarTotal) sidebarTotal.innerText = 'Rp ' + data.transaksi_total;
+                    if(sidebarSubtotal) sidebarSubtotal.innerText = 'Rp ' + data.transaksi_total;
+
+                    // 4. Update Badge Count (Pesanan Tersimpan)
+                    const badge = document.getElementById('cart-count-badge');
+                    if(badge) {
+                        badge.innerText = data.cart_count;
+                        if(data.cart_count > 0) {
+                            badge.classList.remove('hidden');
+                        } else {
+                            badge.classList.add('hidden');
+                        }
+                    }
                 } else {
-                    // Show Error Toast if available
                     if(typeof Toastify === 'function') {
                         Toastify({ text: data.message || 'Gagal update qty', duration: 3000, style: { background: "#ef4444" } }).showToast();
                     } else {

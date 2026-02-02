@@ -99,7 +99,10 @@ class PosController extends Controller
         $validated = $request->validate([
             'produk_id' => 'required|exists:produk,id',
             'transaksi_id' => 'required|exists:transaksi,id',
+            'qty' => 'nullable|integer|min:1', // Validasi qty
         ]);
+
+        $qtyToAdd = $request->input('qty', 1); // Default 1 jika tidak ada
 
         $produk = Produk::find($validated['produk_id']);
         $transaksi = Transaksi::find($validated['transaksi_id']);
@@ -111,19 +114,20 @@ class PosController extends Controller
         $item = $transaksi->details()->where('produk_id', $produk->id)->first();
         $jumlahDiKeranjang = $item ? $item->jumlah : 0;
 
-        if (($jumlahDiKeranjang + 1) > $produk->stok) {
+        // Cek apakah stok cukup untuk penambahan ini
+        if (($jumlahDiKeranjang + $qtyToAdd) > $produk->stok) {
             return back()->with('toast_danger', 'Stok tidak cukup. Sisa: ' . $produk->stok);
         }
 
         if ($item) {
-            $item->increment('jumlah');
+            $item->increment('jumlah', $qtyToAdd); // Increment sesuai qty
             $item->update(['subtotal' => $item->jumlah * $item->harga_satuan]);
         } else {
             $transaksi->details()->create([
                 'produk_id' => $produk->id,
-                'jumlah' => 1,
+                'jumlah' => $qtyToAdd, // Gunakan qty input
                 'harga_satuan' => $produk->harga_jual,
-                'subtotal' => $produk->harga_jual,
+                'subtotal' => $produk->harga_jual * $qtyToAdd,
             ]);
         }
 
@@ -133,7 +137,7 @@ class PosController extends Controller
 
         return redirect()->route('pos.index', ['transaksi' => $transaksi->id])
             ->with('highlight_id', $detailId)
-            ->with('toast_success', "<b>{$produk->nama_produk}</b> (+1) ditambahkan!");
+            ->with('toast_success', "<b>{$produk->nama_produk}</b> (+{$qtyToAdd}) ditambahkan!");
     }
 
     public function updateItem(Request $request)
@@ -169,6 +173,7 @@ class PosController extends Controller
                 'item_subtotal_raw' => $item->subtotal,
                 'transaksi_total' => number_format($item->transaksi->total, 0, ',', '.'),
                 'transaksi_total_raw' => $item->transaksi->total,
+                'cart_count' => $item->transaksi->details->sum('jumlah'), // Tambahan: Total Qty
                 'message' => 'Jumlah berhasil diupdate'
             ]);
         }

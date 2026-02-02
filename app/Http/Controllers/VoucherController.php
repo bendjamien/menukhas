@@ -17,19 +17,25 @@ class VoucherController extends Controller
 
         Voucher::create($request->all());
 
-        return redirect()->route('pengaturan.index')->with('toast_success', 'Voucher berhasil dibuat!');
+        return redirect()->route('pengaturan.index')
+                         ->with('active_tab', 'voucher')
+                         ->with('toast_success', 'Voucher berhasil dibuat!');
     }
 
     public function destroy($id)
     {
         Voucher::destroy($id);
-        return redirect()->route('pengaturan.index')->with('toast_success', 'Voucher dihapus!');
+        return redirect()->route('pengaturan.index')
+                         ->with('active_tab', 'voucher')
+                         ->with('toast_success', 'Voucher dihapus!');
     }
     
     public function toggleStatus($id)
     {
         $voucher = Voucher::find($id);
         $voucher->update(['is_active' => !$voucher->is_active]);
-        return redirect()->route('pengaturan.index');
+        
+        return redirect()->route('pengaturan.index')
+                         ->with('active_tab', 'voucher');
     }
 }

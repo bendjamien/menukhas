@@ -28,9 +28,20 @@
     <script src="https://unpkg.com/alpinejs" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script>
+        // Gunakan nama variabel berbeda agar tidak bentrok dengan library asli
+        const LoginSwal = Swal.mixin({
+            heightAuto: false, // KUNCI: Mencegah layout bergeser/terangkat
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            customClass: {
+                popup: 'rounded-2xl'
+            }
+        });
+    </script>
 </head>
 
-<body class="bg-white h-screen overflow-hidden"
+<body class="bg-white h-screen overflow-hidden antialiased"
       x-data="{ 
           showAbsensiModal: false,
           pin: '',
@@ -50,13 +61,26 @@
               .then(response => response.json().then(data => ({ status: response.status, body: data })))
               .then(({ status, body }) => {
                   if (status >= 200 && status < 300 && body.status == 'success') {
-                      Swal.fire({ title: 'Berhasil', text: body.message, icon: 'success', timer: 2000, showConfirmButton: false, confirmButtonColor: '#3b82f6' });
+                      LoginSwal.fire({ 
+                          title: 'Berhasil', 
+                          text: body.message, 
+                          icon: 'success', 
+                          timer: 2000, 
+                          showConfirmButton: false, 
+                          confirmButtonColor: '#3b82f6'
+                      });
                   } else {
                       throw new Error(body.message || 'Gagal');
                   }
               })
               .catch(error => {
-                  Swal.fire({ title: 'Gagal', text: error.message, icon: 'error', confirmButtonText: 'Coba Lagi', confirmButtonColor: '#ef4444' });
+                  LoginSwal.fire({ 
+                      title: 'Gagal', 
+                      text: error.message, 
+                      icon: 'error', 
+                      confirmButtonText: 'Coba Lagi', 
+                      confirmButtonColor: '#ef4444'
+                  });
               });
           }
       }">

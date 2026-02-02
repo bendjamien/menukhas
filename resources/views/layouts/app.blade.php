@@ -41,79 +41,246 @@
                      class="fixed inset-0 bg-black/50 z-30 md:hidden"
                      x-transition.opacity aria-hidden="true"></div>
 
-                <header class="sticky top-6 z-20 mx-6 mt-6 bg-white/90 backdrop-blur-md shadow-sm rounded-2xl border border-gray-100">
-                    <div class="px-6 py-4 flex justify-between items-center">
-                        <button @click.prevent="isSidebarOpen = !isSidebarOpen" class="md:hidden text-gray-500 hover:text-gray-700 focus:outline-none">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-                        </button>
-
-                        <div class="hidden md:flex items-center gap-6 flex-1 justify-start" 
+                <!-- MODERN FLOATING NAVBAR -->
+                <header class="sticky top-4 z-30 px-4 transition-all duration-300">
+                    <div class="mx-auto max-w-7xl bg-white/80 backdrop-blur-xl border border-gray-100 shadow-xl shadow-gray-200/40 rounded-3xl px-4 py-2 flex justify-between items-center gap-4 h-16">
+                        
+                        <!-- 1. LEFT: Sidebar Toggle & Title -->
+                        <div class="flex items-center gap-4 flex-shrink-0" 
                              x-data="{ 
-                                date: '', 
-                                time: '', 
-                                greeting: '',
-                                updateTime() {
-                                    const now = new Date();
-                                    const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
-                                    this.date = now.toLocaleDateString('id-ID', options);
-                                    this.time = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, ':') + ' WIB';
-
-                                    const hour = now.getHours();
-                                    if (hour < 11) this.greeting = 'Selamat Pagi,';
-                                    else if (hour < 15) this.greeting = 'Selamat Siang,';
-                                    else if (hour < 18) this.greeting = 'Selamat Sore,';
-                                    else this.greeting = 'Selamat Malam,';
+                                date: '',
+                                updateDate() {
+                                    this.date = new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
                                 }
                              }"
-                             x-init="updateTime(); setInterval(() => updateTime(), 1000)">
+                             x-init="updateDate()">
+                            <button @click.prevent="isSidebarOpen = !isSidebarOpen" class="md:hidden p-2 rounded-xl text-gray-500 hover:bg-gray-100 transition">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                            </button>
                             
-                            <div class="text-left hidden lg:block">
-                                <p class="text-xs text-gray-500 font-medium" x-text="greeting"></p>
-                                <p class="text-sm font-bold text-gray-800 leading-tight">{{ Auth::user()->role }}</p>
-                            </div>
-
-                            <div class="h-8 w-px bg-gray-200 hidden lg:block"></div>
-
-                            <div class="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-full border border-gray-200/60 shadow-sm">
-                                <div class="bg-indigo-100 p-1.5 rounded-full text-sky-600">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                </div>
-                                <div>
-                                    <p class="text-[10px] text-gray-500 font-semibold uppercase tracking-wider leading-none" x-text="date"></p>
-                                    <p class="text-xl font-bold text-sky-600 leading-none font-mono mt-0.5" x-text="time"></p>
-                                </div>
+                            <div class="hidden md:flex flex-col">
+                                <h2 class="text-base font-black text-gray-800 tracking-tight leading-none uppercase">
+                                    {{ $header ?? 'MENUKHAS POS' }}
+                                </h2>
+                                <span class="text-[10px] font-bold text-gray-400 mt-1" x-text="date"></span>
                             </div>
                         </div>
 
-                        <div x-data="{ open: false }" @click.outside="open = false" class="relative ml-4">
-                            <button @click="open = !open" class="flex items-center space-x-2 focus:outline-none">
-                                <div class="w-10 h-10 bg-sky-500 hover:bg-sky-600 rounded-full flex items-center justify-center text-white font-bold shadow-md shadow-sky-200 transform hover:scale-105 transition duration-200 overflow-hidden border-2 border-white">
-                                    @if(Auth::user()->avatar)
-                                        <img src="{{ asset('storage/' . Auth::user()->avatar) }}" alt="{{ Auth::user()->name }}" class="w-full h-full object-cover">
-                                    @else
-                                        {{ substr(Auth::user()->name, 0, 1) }}
-                                    @endif
+                        <!-- 2. CENTER: Global Search Bar -->
+                        <div class="hidden md:flex flex-1 max-w-sm relative" 
+                             x-data="{
+                                query: '',
+                                results: [],
+                                isLoading: false,
+                                isOpen: false,
+                                search() {
+                                    if (this.query.length < 2) { this.results = []; this.isOpen = false; return; }
+                                    this.isLoading = true;
+                                    this.isOpen = true;
+                                    
+                                    fetch('{{ route('global.search') }}?q=' + this.query)
+                                        .then(res => res.json())
+                                        .then(data => {
+                                            this.results = data;
+                                            this.isLoading = false;
+                                        });
+                                }
+                             }"
+                             @click.outside="isOpen = false">
+                            
+                            <div class="relative w-full group">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <svg class="h-4 w-4 text-gray-400 group-focus-within:text-sky-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                    </svg>
                                 </div>
-                                <span class="hidden md:block text-sm font-medium text-gray-700">{{ Auth::user()->name }}</span>
-                            </button>
+                                <input type="text" 
+                                       x-model="query"
+                                       @input.debounce.300ms="search()"
+                                       @focus="if(query.length >= 2) isOpen = true"
+                                       class="block w-full pl-9 pr-3 py-2 border-none rounded-2xl bg-gray-50/80 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-sky-500/20 focus:bg-white transition-all shadow-inner" 
+                                       placeholder="Cari (Ctrl + K)..."
+                                       @keydown.window.ctrl.k.prevent="$el.focus()">
+                                
+                                <!-- Loading Indicator -->
+                                <div x-show="isLoading" class="absolute inset-y-0 right-3 flex items-center" style="display:none;">
+                                    <svg class="animate-spin h-4 w-4 text-sky-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                </div>
+                            </div>
 
-                            <div x-show="open" 
-                                 x-transition:enter="transition ease-out duration-100"
-                                 x-transition:enter-start="transform opacity-0 scale-95"
-                                 x-transition:enter-end="transform opacity-100 scale-100"
-                                 x-transition:leave="transition ease-in duration-75"
-                                 x-transition:leave-start="transform opacity-100 scale-100"
-                                 x-transition:leave-end="transform opacity-0 scale-95"
-                                 class="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg py-1 z-50 border border-gray-100 ring-1 ring-black ring-opacity-5">
-                                <div class="px-4 py-3 border-b border-gray-50">
-                                    <p class="text-sm font-semibold text-gray-900">Akun Saya</p>
-                                    <p class="text-xs text-gray-500 truncate">{{ Auth::user()->email }}</p>
+                            <!-- Search Results Dropdown -->
+                            <div x-show="isOpen && query.length >= 2" 
+                                 x-transition.opacity
+                                 class="absolute top-full mt-2 w-full bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden z-50 max-h-80 overflow-y-auto"
+                                 style="display:none;">
+                                
+                                <template x-if="results.length === 0 && !isLoading">
+                                    <div class="p-4 text-center text-sm text-gray-500">
+                                        Tidak ditemukan hasil untuk "<span x-text="query" class="font-bold"></span>"
+                                    </div>
+                                </template>
+
+                                <ul class="divide-y divide-gray-50">
+                                    <template x-for="item in results">
+                                        <li>
+                                            <a :href="item.url" class="flex items-center px-4 py-3 hover:bg-sky-50 transition gap-3 group">
+                                                <div class="p-2 rounded-lg bg-gray-100 text-gray-500 group-hover:bg-white group-hover:text-sky-500 transition-colors" x-html="item.icon"></div>
+                                                <div>
+                                                    <p class="text-sm font-bold text-gray-800" x-text="item.text"></p>
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500" x-text="item.type"></span>
+                                                        <span class="text-xs text-gray-500" x-text="item.subtext"></span>
+                                                    </div>
+                                                </div>
+                                            </a>
+                                        </li>
+                                    </template>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- 3. RIGHT: Widgets & Profile -->
+                        <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                            
+                            <!-- Time Widget -->
+                            <div class="hidden lg:flex items-center h-10 bg-sky-50/50 px-4 rounded-2xl border border-sky-100/50"
+                                 x-data="{ 
+                                    time: '', 
+                                    updateTime() {
+                                        const now = new Date();
+                                        this.time = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }).replace('.', ':');
+                                    }
+                                 }"
+                                 x-init="updateTime(); setInterval(() => updateTime(), 1000)">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="text-sm font-black text-sky-600 font-mono leading-none" x-text="time"></span>
+                                    <div class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
                                 </div>
-                                <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profil</a>
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-                                    <button type="submit" class="w-full text-left block px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-medium">Logout</button>
-                                </form>
+                            </div>
+
+                            <!-- Notifications -->
+                            <div x-data="{ open: false }" @click.outside="open = false" class="relative">
+                                <button @click="open = !open" class="relative p-2.5 text-gray-400 hover:text-sky-600 hover:bg-sky-50 rounded-xl transition">
+                                    @if(isset($globalNotifs) && count($globalNotifs) > 0)
+                                        <span class="absolute top-2.5 right-3 block h-2 w-2 rounded-full ring-2 ring-white bg-red-500 animate-bounce"></span>
+                                    @endif
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                                </button>
+
+                                <!-- Notif Dropdown -->
+                                <div x-show="open" 
+                                     x-transition:enter="transition ease-out duration-200"
+                                     x-transition:enter-start="opacity-0 translate-y-2"
+                                     x-transition:enter-end="opacity-100 translate-y-0"
+                                     x-transition:leave="transition ease-in duration-150"
+                                     x-transition:leave-start="opacity-100 translate-y-0"
+                                     x-transition:leave-end="opacity-0 translate-y-2"
+                                     class="absolute right-0 mt-3 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 origin-top-right overflow-hidden"
+                                     style="display:none;">
+                                    
+                                    <div class="px-4 py-2 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                                        <span class="text-xs font-bold text-gray-700 uppercase tracking-wider">Notifikasi</span>
+                                        <span class="text-[10px] text-gray-400">{{ isset($globalNotifs) ? count($globalNotifs) : 0 }} Baru</span>
+                                    </div>
+
+                                    <div class="max-h-64 overflow-y-auto">
+                                        @if(isset($globalNotifs))
+                                            @forelse($globalNotifs as $notif)
+                                                <a href="{{ $notif['link'] }}" class="block px-4 py-3 hover:bg-gray-50 transition border-b border-gray-50 last:border-0">
+                                                    <div class="flex gap-3">
+                                                        <div class="flex-shrink-0 mt-1">
+                                                            @if($notif['type'] == 'warning')
+                                                                <div class="bg-orange-100 text-orange-500 p-1.5 rounded-full">
+                                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                                                </div>
+                                                            @else
+                                                                <div class="bg-blue-100 text-blue-500 p-1.5 rounded-full">
+                                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                                </div>
+                                                            @endif
+                                                        </div>
+                                                        <div>
+                                                            <p class="text-sm font-bold text-gray-800">{{ $notif['title'] }}</p>
+                                                            <p class="text-xs text-gray-500 mt-0.5">{{ $notif['message'] }}</p>
+                                                            <p class="text-[10px] text-gray-400 mt-1">{{ $notif['time'] }}</p>
+                                                        </div>
+                                                    </div>
+                                                </a>
+                                            @empty
+                                                <div class="px-4 py-8 text-center">
+                                                    <p class="text-gray-400 text-sm">Tidak ada notifikasi.</p>
+                                                </div>
+                                            @endforelse
+                                        @else
+                                            <div class="px-4 py-8 text-center">
+                                                <p class="text-gray-400 text-sm">Tidak ada notifikasi.</p>
+                                            </div>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Profile Dropdown -->
+                            <div x-data="{ open: false }" @click.outside="open = false" class="relative">
+                                <button @click="open = !open" class="flex items-center gap-3 focus:outline-none group">
+                                    <div class="text-right hidden sm:block">
+                                        <p class="text-sm font-bold text-gray-800 group-hover:text-sky-600 transition">{{ Auth::user()->name }}</p>
+                                        <p class="text-xs text-gray-500 font-medium capitalize">{{ Auth::user()->role }}</p>
+                                    </div>
+                                    <div class="relative">
+                                        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-sky-400 to-blue-600 p-0.5 shadow-md group-hover:shadow-sky-200 transition">
+                                            <div class="w-full h-full rounded-[10px] bg-white flex items-center justify-center overflow-hidden">
+                                                @if(Auth::user()->avatar)
+                                                    <img src="{{ asset('storage/' . Auth::user()->avatar) }}" alt="Avatar" class="w-full h-full object-cover">
+                                                @else
+                                                    <span class="font-bold text-sky-600 text-xs">{{ substr(Auth::user()->name, 0, 2) }}</span>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                                    </div>
+                                </button>
+
+                                <!-- Dropdown Menu -->
+                                <div x-show="open" 
+                                     x-transition:enter="transition ease-out duration-200"
+                                     x-transition:enter-start="opacity-0 translate-y-2 scale-95"
+                                     x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                                     x-transition:leave="transition ease-in duration-150"
+                                     x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                                     x-transition:leave-end="opacity-0 translate-y-2 scale-95"
+                                     class="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 origin-top-right">
+                                    
+                                    <div class="px-4 py-3 border-b border-gray-50 mb-2">
+                                        <p class="text-xs text-gray-400 uppercase font-bold tracking-wider">Signed in as</p>
+                                        <p class="text-sm font-medium text-gray-800 truncate">{{ Auth::user()->email }}</p>
+                                    </div>
+
+                                    <a href="{{ route('profile.edit') }}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-sky-50 hover:text-sky-700 transition">
+                                        <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                        Profil Saya
+                                    </a>
+                                    
+                                    @if(Auth::user()->role === 'admin')
+                                        <a href="{{ route('pengaturan.index') }}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-sky-50 hover:text-sky-700 transition">
+                                            <svg class="w-4 h-4 mr-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.096 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                            Pengaturan
+                                        </a>
+                                    @endif
+
+                                    <div class="border-t border-gray-100 my-2"></div>
+
+                                    <form method="POST" action="{{ route('logout') }}">
+                                        @csrf
+                                        <button type="submit" class="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition">
+                                            <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                            Logout
+                                        </button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     </div>
