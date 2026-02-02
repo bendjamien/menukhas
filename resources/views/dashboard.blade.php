@@ -8,6 +8,77 @@
     <div class="py-6">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             
+            <!-- ALERT ABSENSI -->
+            @if(isset($absensiHariIni))
+                @if(!$absensiHariIni->waktu_keluar)
+                    @if($isWaktunyaPulang)
+                        <div class="bg-indigo-900 border-l-4 border-indigo-500 text-white p-4 mb-6 rounded-r shadow-lg flex justify-between items-center">
+                            <div>
+                                <p class="font-bold text-lg">Waktunya Pulang!</p>
+                                <p class="text-sm text-indigo-200">Jam kerja Anda sudah selesai ({{ $jamPulangSetting }}). Silakan absen pulang.</p>
+                            </div>
+                            <form id="clockOutForm" action="{{ route('absensi.clock_out') }}" method="POST">
+                                @csrf
+                                <input type="hidden" name="pin" id="clockOutPin">
+                                <button type="button" onclick="confirmClockOut()" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-6 rounded-full shadow-lg transform hover:scale-105 transition duration-200 flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                    ABSEN PULANG & KUNCI
+                                </button>
+                            </form>
+                            <script>
+                                function confirmClockOut() {
+                                    Swal.fire({
+                                        title: 'Konfirmasi Pulang',
+                                        text: "Masukkan PIN Anda untuk konfirmasi absen pulang.",
+                                        input: 'password',
+                                        inputAttributes: {
+                                            autocapitalize: 'off',
+                                            placeholder: 'PIN (6 Digit)',
+                                            maxlength: 6,
+                                            inputmode: 'numeric'
+                                        },
+                                        icon: 'warning',
+                                        showCancelButton: true,
+                                        confirmButtonColor: '#ef4444',
+                                        cancelButtonColor: '#6b7280',
+                                        confirmButtonText: 'Absen Pulang',
+                                        cancelButtonText: 'Batal',
+                                        background: '#fff',
+                                        borderRadius: '1rem',
+                                        preConfirm: (pin) => {
+                                            if (!pin) {
+                                                Swal.showValidationMessage('PIN wajib diisi!')
+                                            }
+                                            return pin
+                                        }
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            document.getElementById('clockOutPin').value = result.value;
+                                            document.getElementById('clockOutForm').submit();
+                                        }
+                                    })
+                                }
+                            </script>
+                        </div>
+                    @endif
+                @endif
+            @elseif(Auth::user()->role === 'kasir')
+                 <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 rounded-r">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm text-yellow-700">
+                                Anda belum melakukan Absen Masuk hari ini.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
             <!-- 1. STATS CARDS -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 <!-- Card 1: Pendapatan Hari Ini -->

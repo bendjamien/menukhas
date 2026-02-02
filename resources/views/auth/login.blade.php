@@ -11,6 +11,8 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
         body { font-family: 'Poppins', sans-serif; }
+        /* Pastikan SweetAlert di atas modal */
+        .swal2-container { z-index: 20000 !important; }
     </style>
 
     <script src="https://unpkg.com/alpinejs" defer></script>
@@ -29,54 +31,56 @@
           submitPin() {
               if(this.pin.length < 6) return;
               
+              let currentPin = this.pin;
+              this.pin = '';
+              this.showAbsensiModal = false; // Langsung tutup modal agar tidak menghalangi notifikasi
+
               fetch('{{ route('absensi.store') }}', {
                   method: 'POST',
                   headers: {
                       'Content-Type': 'application/json',
                       'X-CSRF-TOKEN': '{{ csrf_token() }}'
                   },
-                  body: JSON.stringify({ pin: this.pin })
+                  body: JSON.stringify({ pin: currentPin })
               })
-              .then(response => response.json())
+              .then(response => {
+                  return response.json().then(data => {
+                      if (!response.ok) throw new Error(data.message || 'Terjadi kesalahan sistem');
+                      return data;
+                  });
+              })
               .then(data => {
                   if(data.status == 'success') {
-                      this.showAbsensiModal = false;
-                      this.pin = '';
                       this.failedAttempts = 0;
                       Swal.fire({
-                          title: data.tipe === 'masuk' ? 'SELAMAT DATANG' : 'HATI-HATI',
+                          title: 'BERHASIL',
                           text: data.message,
                           icon: 'success',
-                          timer: 3000,
+                          timer: 4000,
                           showConfirmButton: false
                       });
                   } else {
-                      this.pin = '';
-                      this.failedAttempts++;
-                      
-                      if (this.failedAttempts >= 3) {
-                          Swal.fire({
-                              title: 'AKSES DITOLAK',
-                              text: 'Anda salah memasukkan PIN lebih dari 3 kali. Hubungi Admin untuk mereset dan memperbaiki PIN.',
-                              icon: 'warning',
-                              confirmButtonText: 'Mengerti',
-                              confirmButtonColor: '#d33'
-                          });
-                          this.showAbsensiModal = false;
-                      } else {
-                          Swal.fire({
-                              title: 'Gagal',
-                              text: data.message,
-                              icon: 'error',
-                              timer: 1500,
-                              showConfirmButton: false
-                          });
-                      }
+                      throw new Error(data.message || 'Gagal melakukan absensi');
                   }
               })
               .catch(error => {
                   console.error('Error:', error);
-                  Swal.fire('Error', 'Terjadi kesalahan sistem', 'error');
+                  this.failedAttempts++;
+                  
+                  if (this.failedAttempts >= 3) {
+                      Swal.fire({
+                          title: 'AKSES DITOLAK',
+                          text: 'Salah PIN 3x. Hubungi Admin.',
+                          icon: 'warning'
+                      });
+                  } else {
+                      Swal.fire({
+                          title: 'Gagal',
+                          text: error.message,
+                          icon: 'error',
+                          confirmButtonText: 'Coba Lagi'
+                      });
+                  }
               });
           }
       }"
@@ -213,7 +217,7 @@
                                 <svg class="w-5 h-5 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path>
                                 </svg>
-                                Absen via PIN (Masuk / Pulang)
+                                Absen Masuk (PIN)
                             </button>
                         </div>
                     </template>

@@ -13,6 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         
+        $middleware->alias([
+            'not.clocked.out' => \App\Http\Middleware\EnsureUserHasNotClockedOut::class,
+        ]);
+
         $middleware->validateCsrfTokens(except: [
             'api/midtrans-callback', 
         ]);

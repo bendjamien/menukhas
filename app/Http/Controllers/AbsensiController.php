@@ -81,8 +81,7 @@ class AbsensiController extends Controller
 
                 $pesan = "Halo {$user->name}, Selamat Bekerja!";
                 if ($status == 'Telat') {
-                    // Convert minutes to readable format if needed, but minutes is fine
-                    $pesan = "Halo {$user->name}, Anda terlambat {$keterlambatan} menit dari jadwal masuk ({$jamMasukSetting}) + toleransi ({$toleransiMenit} menit).";
+                    $pesan = "Halo {$user->name}, Anda terlambat {$keterlambatan} menit. Semangat mengejar ketertinggalan!";
                 }
 
                 return response()->json([
@@ -92,38 +91,40 @@ class AbsensiController extends Controller
                 ]);
 
             } else {
-                // === ABSEN PULANG ===
-
+                // === SUDAH ABSEN MASUK ===
+                // Karena kebijakan baru: Absen Pulang dilakukan di Dashboard
+                
                 if ($absen->waktu_keluar) {
                     return response()->json([
                         'status' => 'error', 
-                        'message' => 'Anda SUDAH absen pulang hari ini.'
+                        'message' => 'Anda sudah selesai bekerja hari ini (Sudah Absen Pulang).'
                     ]);
                 }
 
-                // Cek Jadwal Pulang
-                $jadwalPulang = Carbon::createFromFormat('Y-m-d H:i', $todayDate . ' ' . substr($jamPulangSetting, 0, 5), 'Asia/Jakarta');
+                // $nowTime = $now->format('H:i');
+                // $jamPulangOnly = substr($jamPulangSetting, 0, 5);
                 
-                if ($now->lessThan($jadwalPulang)) {
-                    $sisaWaktu = $now->diffInMinutes($jadwalPulang);
-                    $jam = floor($sisaWaktu / 60);
-                    $menit = $sisaWaktu % 60;
-                    $keteranganWaktu = $jam > 0 ? "{$jam} jam {$menit} menit" : "{$menit} menit";
-
-                    return response()->json([
-                        'status' => 'error', 
-                        'message' => "Belum waktunya pulang! Jadwal pulang pukul {$jamPulangSetting}. Kurang {$keteranganWaktu} lagi."
-                    ]);
+                $isWaktunya = false;
+                try {
+                    $jamPulangCarbon = Carbon::createFromFormat('H:i', substr($jamPulangSetting, 0, 5), 'Asia/Jakarta');
+                    $jamPulangCarbon->setDate($now->year, $now->month, $now->day);
+                    if ($now->greaterThanOrEqualTo($jamPulangCarbon)) {
+                        $isWaktunya = true;
+                    }
+                } catch (\Exception $e) {
+                    // Fallback comparison
+                    $isWaktunya = $now->format('H:i') >= substr($jamPulangSetting, 0, 5);
                 }
 
-                $absen->update([
-                    'waktu_keluar' => $now->format('H:i:s')
-                ]);
+                if ($isWaktunya) {
+                    $msg = "Anda sudah Absen Masuk pukul {$absen->waktu_masuk}. Silakan LOGIN ke dashboard untuk melakukan Absen Pulang.";
+                } else {
+                    $msg = "Anda sudah Absen Masuk pukul {$absen->waktu_masuk}. Selamat Bekerja!";
+                }
 
                 return response()->json([
-                    'status' => 'success',
-                    'tipe' => 'pulang',
-                    'message' => "Hati-hati di jalan, {$user->name}! Terima kasih atas kerja kerasmu hari ini."
+                    'status' => 'error',
+                    'message' => $msg
                 ]);
             }
 
@@ -132,6 +133,61 @@ class AbsensiController extends Controller
                 'status' => 'error',
                 'message' => 'Error: ' . $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function storeClockOutWeb(Request $request)
+    {
+        try {
+            $user = auth()->user();
+            $now = Carbon::now('Asia/Jakarta');
+            $todayDate = $now->format('Y-m-d');
+
+            // Ambil Pengaturan Jam Pulang
+            $jamPulangSetting = Setting::where('key', 'jam_pulang_kantor')->value('value') ?? '17:00';
+            
+            $absen = Absensi::where('user_id', $user->id)
+                            ->where('tanggal', $todayDate)
+                            ->first();
+
+            if (!$absen) {
+                return back()->with('error', 'Anda belum absen masuk hari ini.');
+            }
+
+            if ($absen->waktu_keluar) {
+                 return back()->with('error', 'Anda sudah absen pulang hari ini.');
+            }
+
+            // Cek Jadwal Pulang
+            $jadwalPulang = Carbon::createFromFormat('Y-m-d H:i', $todayDate . ' ' . substr($jamPulangSetting, 0, 5), 'Asia/Jakarta');
+            
+            if ($now->lessThan($jadwalPulang)) {
+                $sisaWaktu = $now->diffInMinutes($jadwalPulang);
+                $jam = floor($sisaWaktu / 60);
+                $menit = $sisaWaktu % 60;
+                $keteranganWaktu = $jam > 0 ? "{$jam} jam {$menit} menit" : "{$menit} menit";
+
+                return back()->with('toast_danger', "Belum waktunya pulang! Jadwal pulang pukul {$jamPulangSetting}. Kurang {$keteranganWaktu} lagi.");
+            }
+
+            // --- VALIDASI PIN ---
+            if (!$request->has('pin') || $request->pin !== $user->pin) {
+                return back()->with('toast_danger', 'PIN Salah! Gagal absen pulang.');
+            }
+
+            $absen->update([
+                'waktu_keluar' => $now->format('H:i:s')
+            ]);
+
+            // LOGOUT USER & REDIRECT KE HALAMAN LOGIN
+            auth()->guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
+            return redirect('/login')->with('status', "Absen pulang berhasil. Terima kasih {$user->name}!");
+
+        } catch (\Exception $e) {
+            return back()->with('toast_danger', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 }

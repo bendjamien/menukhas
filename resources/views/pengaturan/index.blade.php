@@ -81,8 +81,8 @@
                             </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-700 uppercase mb-1">Toleransi</label>
-                                <div class="flex items-center">
-                                    <input type="number" name="toleransi_telat" value="{{ old('toleransi_telat', $settings['toleransi_telat'] ?? '0') }}" class="block w-full border-gray-300 rounded-l-lg shadow-sm focus:ring-sky-500 focus:border-sky-500">
+                                <div class="flex items-center shadow-sm">
+                                    <input type="number" name="toleransi_telat" value="{{ old('toleransi_telat', $settings['toleransi_telat'] ?? '0') }}" class="block w-full border-gray-300 rounded-l-lg focus:ring-sky-500 focus:border-sky-500 py-2">
                                     <span class="inline-flex items-center px-3 py-2 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">Min</span>
                                 </div>
                             </div>

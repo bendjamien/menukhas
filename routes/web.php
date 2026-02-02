@@ -41,7 +41,11 @@ Route::post('/midtrans-callback', [PosController::class, 'midtransCallback']);
 // ===========================================
 Route::middleware(['auth', 'verified'])->group(function () {
 
+    // Middleware tambahan: Cek apakah user sudah absen pulang
+    Route::middleware(['not.clocked.out'])->group(function () {
+
     // 1. DASHBOARD
+    Route::post('/absensi/clock-out', [AbsensiController::class, 'storeClockOutWeb'])->name('absensi.clock_out');
     Route::get('/dashboard', function () {
         $today = Carbon::today('Asia/Jakarta');
         
@@ -90,6 +94,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
             ->limit(5)
             ->get();
 
+        // Data Absensi User Login Hari Ini
+        $absensiHariIni = \App\Models\Absensi::where('user_id', auth()->id())
+                                             ->where('tanggal', $today->format('Y-m-d'))
+                                             ->first();
+        
+        $jamPulangSetting = \App\Models\Setting::where('key', 'jam_pulang_kantor')->value('value') ?? '17:00';
+        
+        // Parse jam pulang safely
+        try {
+            $jamPulang = \Carbon\Carbon::createFromFormat('H:i', substr($jamPulangSetting, 0, 5), 'Asia/Jakarta');
+            // Set date to today so we compare times on the same day
+            $jamPulang->setDate($today->year, $today->month, $today->day);
+            $isWaktunyaPulang = \Carbon\Carbon::now('Asia/Jakarta')->greaterThanOrEqualTo($jamPulang);
+        } catch (\Exception $e) {
+            // Fallback if format invalid
+            $isWaktunyaPulang = false;
+        }
+
         return view('dashboard', [
             'jumlahPelanggan' => $jumlahPelanggan,
             'jumlahProduk' => $jumlahProduk,
@@ -99,7 +121,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             'transaksiTerbaru' => $transaksiTerbaru,
             'chartLabels' => $chartLabels,
             'chartValues' => $chartValues,
-            'produkTerlaris' => $produkTerlaris
+            'produkTerlaris' => $produkTerlaris,
+            'absensiHariIni' => $absensiHariIni,
+            'isWaktunyaPulang' => $isWaktunyaPulang,
+            'jamPulangSetting' => $jamPulangSetting
         ]);
     })->name('dashboard');
 
@@ -187,6 +212,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('vouchers/{id}', [VoucherController::class, 'destroy'])->name('vouchers.destroy');
         Route::patch('vouchers/{id}/toggle', [VoucherController::class, 'toggleStatus'])->name('vouchers.toggle');
     }); 
+
+    }); // End Middleware not.clocked.out
 
 });
 

@@ -21,11 +21,20 @@
                     $restWords = '';
                 }
             }
+
+            // CEK APAKAH USER SUDAH ABSEN PULANG
+            $isLocked = false;
+            if (auth()->check()) {
+                $todayDate = \Carbon\Carbon::now('Asia/Jakarta')->format('Y-m-d');
+                $isLocked = \App\Models\Absensi::where('user_id', auth()->id())
+                    ->where('tanggal', $todayDate)
+                    ->whereNotNull('waktu_keluar')
+                    ->exists();
+            }
         @endphp
 
         <a href="{{ route('dashboard') }}" class="flex items-center gap-1 font-bold text-2xl tracking-wide hover:scale-105 transition-transform duration-300">
             <span class="text-yellow-500">{{ $firstWord }}</span>
-            
             <span class="text-emerald-600">{{ $restWords }}</span>
         </a>
     </div>
@@ -48,7 +57,7 @@
             </li>
 
             @if(Auth::user()->role !== 'owner')
-            <li>
+            <li class="{{ $isLocked ? 'opacity-50 pointer-events-none grayscale' : '' }}">
                 <a href="{{ route('pos.index') }}" 
                    class="relative flex items-center h-12 px-4 rounded-xl transition-all duration-200
                           {{ request()->is('pos*') ? 'bg-sky-50 text-sky-600 font-bold' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
@@ -56,6 +65,7 @@
                          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
                     </span>
                     <span class="ml-3 text-sm font-medium">Input Transaksi</span>
+                    @if($isLocked) <svg class="w-4 h-4 ml-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg> @endif
                     @if(request()->is('pos*'))
                         <span class="absolute right-0 top-1/2 transform -translate-y-1/2 w-1.5 h-8 bg-sky-600 rounded-l-full"></span>
                     @endif
@@ -64,7 +74,7 @@
             @endif
             
             @if(Auth::user()->role !== 'owner')
-            <li x-data="{ open: {{ (request()->is('pelanggan*') || request()->is('kategori*') || request()->is('produk*')) ? 'true' : 'false' }} }">
+            <li x-data="{ open: {{ (request()->is('pelanggan*') || request()->is('kategori*') || request()->is('produk*')) ? 'true' : 'false' }} }" class="{{ $isLocked ? 'opacity-50 pointer-events-none grayscale' : '' }}">
                 <button @click="open = !open"
                         class="relative flex items-center w-full h-12 px-4 rounded-xl transition-all duration-200 justify-between
                                {{ (request()->is('pelanggan*') || request()->is('kategori*') || request()->is('produk*')) ? 'bg-sky-50 text-sky-600 font-bold' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
@@ -74,7 +84,11 @@
                         </span>
                         <span class="ml-3 text-sm font-medium">Master Data</span>
                     </div>
-                    <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    @if($isLocked) 
+                        <svg class="w-4 h-4 ml-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    @else
+                        <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    @endif
                 </button>
                 
                 <ul x-show="open" x-transition.origin.top class="mt-1 space-y-1 px-2">
@@ -99,7 +113,7 @@
             </li>
             @endif
 
-            <li x-data="{ open: {{ (request()->is('transaksi*') || request()->is('stok-log*') || request()->is('pembayaran*') || request()->is('laporan*') || (Auth::user()->role == 'owner' && request()->is('pelanggan*'))) ? 'true' : 'false' }} }">
+            <li x-data="{ open: {{ (request()->is('transaksi*') || request()->is('stok-log*') || request()->is('pembayaran*') || request()->is('laporan*') || (Auth::user()->role == 'owner' && request()->is('pelanggan*'))) ? 'true' : 'false' }} }" class="{{ $isLocked ? 'opacity-50 pointer-events-none grayscale' : '' }}">
                 <button @click="open = !open"
                         class="relative flex items-center w-full h-12 px-4 rounded-xl transition-all duration-200 justify-between
                                {{ (request()->is('transaksi*') || request()->is('stok-log*') || request()->is('pembayaran*') || request()->is('laporan*') || (Auth::user()->role == 'owner' && request()->is('pelanggan*'))) ? 'bg-sky-50 text-sky-600 font-bold' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
@@ -109,7 +123,11 @@
                         </span>
                         <span class="ml-3 text-sm font-medium">Laporan</span>
                     </div>
-                    <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    @if($isLocked) 
+                        <svg class="w-4 h-4 ml-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    @else
+                        <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    @endif
                 </button>
 
                 <ul x-show="open" x-transition.origin.top class="mt-1 space-y-1 px-2">
@@ -157,7 +175,7 @@
             </li>
 
             @if(Auth::user()->role == 'admin')
-            <li x-data="{ open: {{ (request()->is('users*') || request()->is('pengaturan*')) ? 'true' : 'false' }} }">
+            <li x-data="{ open: {{ (request()->is('users*') || request()->is('pengaturan*')) ? 'true' : 'false' }} }" class="{{ $isLocked ? 'opacity-50 pointer-events-none grayscale' : '' }}">
                 <button @click="open = !open"
                         class="relative flex items-center w-full h-12 px-4 rounded-xl transition-all duration-200 justify-between
                                {{ (request()->is('users*') || request()->is('pengaturan*')) ? 'bg-sky-50 text-sky-600 font-bold' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900' }}">
@@ -167,7 +185,11 @@
                         </span>
                         <span class="ml-3 text-sm font-medium">Administrasi</span>
                     </div>
-                    <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    @if($isLocked) 
+                        <svg class="w-4 h-4 ml-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    @else
+                        <svg class="w-4 h-4 transition-transform duration-200" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    @endif
                 </button>
                 <ul x-show="open" x-transition.origin.top class="mt-1 space-y-1 px-2">
                     <li>
