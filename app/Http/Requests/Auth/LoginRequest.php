@@ -40,12 +40,22 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        // 1. Coba Login Standar (Cek Email & Password)
+        // 1. Cek Apakah Email Terdaftar
+        $userExists = \App\Models\User::where('email', $this->email)->first();
+        
+        if (!$userExists) {
+            RateLimiter::hit($this->throttleKey());
+            throw ValidationException::withMessages([
+                'email' => 'Login gagal, akun tidak terdaftar.',
+            ]);
+        }
+
+        // 2. Coba Login (Cek Password)
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'email' => 'Password yang Anda masukkan salah.',
             ]);
         }
 
@@ -97,6 +107,7 @@ class LoginRequest extends FormRequest
      */
     public function ensureIsNotRateLimited(): void
     {
+        // Maksimal 5 kali percobaan
         if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
             return;
         }
@@ -104,12 +115,10 @@ class LoginRequest extends FormRequest
         event(new Lockout($this));
 
         $seconds = RateLimiter::availableIn($this->throttleKey());
+        $minutes = ceil($seconds / 60);
 
         throw ValidationException::withMessages([
-            'email' => trans('auth.throttle', [
-                'seconds' => $seconds,
-                'minutes' => ceil($seconds / 60),
-            ]),
+            'email' => "Anda telah melakukan terlalu banyak percobaan login. Silakan coba lagi dalam $minutes menit.",
         ]);
     }
 

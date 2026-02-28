@@ -1,6 +1,6 @@
 <x-app-layout>
     <div class="bg-white p-8 rounded-lg shadow-md max-w-2xl mx-auto">
-        
+
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold text-gray-800">Tambah Akun Baru</h1>
             <a href="{{ route('users.index') }}" class="text-sm text-gray-600 hover:text-sky-500">&larr; Kembali ke Daftar</a>
@@ -8,29 +8,29 @@
 
         <form action="{{ route('users.store') }}" method="POST" class="space-y-4">
             @csrf
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label for="name" class="block text-sm font-medium text-gray-700">Nama Lengkap</label>
-                    <input type="text" name="name" id="name" value="{{ old('name') }}" 
-                           class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500" 
+                    <input type="text" name="name" id="name" value="{{ old('name') }}"
+                           class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500"
                            required>
                 </div>
                 <div>
-                    <label for="username" class="block text-sm font-medium text-gray-700">Username (untuk login)</label>
-                    <input type="text" name="username" id="username" value="{{ old('username') }}" 
-                           class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500" 
+                    <label for="username" class="block text-sm font-medium text-gray-700">User</label>
+                    <input type="text" name="username" id="username" value="{{ old('username') }}"
+                           class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500"
                            required>
                 </div>
             </div>
 
             <div>
-                <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                <label for="email" class="block text-sm font-medium text-gray-700">Email (Untuk Login)</label>
                 <input type="email" name="email" id="email" value="{{ old('email') }}"
                        class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500"
                        required>
             </div>
-            
+
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label for="role" class="block text-sm font-medium text-gray-700">Role (Hak Akses)</label>
@@ -58,20 +58,20 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
-                    <input type="password" name="password" id="password" 
-                           class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500" 
+                    <input type="password" name="password" id="password"
+                           class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500"
                            required>
                 </div>
                 <div>
                     <label for="password_confirmation" class="block text-sm font-medium text-gray-700">Konfirmasi Password</label>
-                    <input type="password" name="password_confirmation" id="password_confirmation" 
-                           class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500" 
+                    <input type="password" name="password_confirmation" id="password_confirmation"
+                           class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500"
                            required>
                 </div>
             </div>
 
             <div class="flex justify-end pt-4">
-                <button type="submit" 
+                <button type="submit"
                         class="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition duration-200">
                     Simpan Akun
                 </button>
