@@ -119,7 +119,7 @@
                             <p class="text-gray-500 font-bold text-xs uppercase tracking-wider mb-2">Menu/Produk</p>
                             <h3 class="text-2xl font-black text-gray-800 leading-none">{{ $jumlahProduk }}</h3>
                             <div class="mt-4 flex items-center text-[10px] font-black text-purple-600 bg-purple-50 w-max px-2 py-1 rounded-lg border border-purple-100">
-                                DATABASE AKTIF
+                                DATA AKTIF
                             </div>
                         </div>
                         <div class="relative z-10 text-purple-600 bg-purple-50 p-3 rounded-2xl group-hover:bg-purple-600 group-hover:text-white transition-all duration-300 shadow-sm">

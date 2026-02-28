@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Absensi;
 use App\Models\Setting;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 use Carbon\Carbon;
 
 class AbsensiController extends Controller
@@ -139,7 +140,7 @@ class AbsensiController extends Controller
     public function storeClockOutWeb(Request $request)
     {
         try {
-            $user = auth()->user();
+            $user = Auth::user();
             $now = Carbon::now('Asia/Jakarta');
             $todayDate = $now->format('Y-m-d');
 
