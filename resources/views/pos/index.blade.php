@@ -7,9 +7,11 @@
                 <form action="{{ route('pos.index', ['transaksi' => $activeDraft->id]) }}" method="GET">
                     <div class="relative flex gap-2">
                         <div class="relative flex-grow">
-                            <input type="text" name="search" value="{{ $search ?? '' }}" 
+                            <input type="text" name="search" id="pos-search-input" value="{{ $search ?? '' }}" 
                                    placeholder="Cari produk berdasarkan nama atau barcode..." 
-                                   class="w-full border-gray-300 rounded-lg shadow-sm pl-10 focus:border-sky-500 focus:ring-sky-500">
+                                   class="w-full border-gray-300 rounded-lg shadow-sm pl-10 focus:border-sky-500 focus:ring-sky-500"
+                                   autofocus
+                                   autocomplete="off">
                             <span class="absolute left-3 top-2.5 text-gray-400">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                             </span>
@@ -31,8 +33,16 @@
             <div class="bg-white rounded-lg shadow overflow-hidden border border-gray-100">
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-3 p-3 h-[65vh] overflow-y-auto custom-scrollbar content-start">
                     @forelse ($produks as $produk)
-                        <div x-data="{ qty: 1 }" class="h-full">
-                            <form action="{{ route('pos.add_item') }}" method="POST" class="h-full flex flex-col bg-white border border-gray-200 rounded-xl hover:shadow-lg transition-all duration-300 group overflow-hidden">
+                        @php
+                            $qtyInCart = $activeDraft->details->where('produk_id', $produk->id)->sum('jumlah') ?? 0;
+                            $displayStock = $produk->stok - $qtyInCart;
+                        @endphp
+                        <div x-data="{ qty: 1, currentStock: {{ $displayStock }} }" 
+                             class="h-full product-card" 
+                             data-produk-id="{{ $produk->id }}" 
+                             data-stok-asli="{{ $produk->stok }}"
+                             x-on:stock-updated-{{ $produk->id }}.window="currentStock = $event.detail.available">
+                            <form @submit.prevent="addItemAJAX($el)" class="h-full flex flex-col bg-white border border-gray-200 rounded-xl hover:shadow-lg transition-all duration-300 group overflow-hidden">
                                 @csrf
                                 <input type="hidden" name="produk_id" value="{{ $produk->id }}">
                                 <input type="hidden" name="transaksi_id" value="{{ $activeDraft->id }}">
@@ -53,7 +63,7 @@
                                             {{ $produk->nama_produk }}
                                         </h3>
                                         <div class="flex justify-between items-center">
-                                            <p class="text-[10px] text-gray-400 font-medium">Stok: {{ $produk->stok }}</p>
+                                            <p class="text-[10px] text-gray-400 font-medium">Stok: <span id="product-stock-count-{{ $produk->id }}" x-text="currentStock"></span></p>
                                             <span class="text-sm font-black text-gray-900">
                                                 Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}
                                             </span>
@@ -67,14 +77,14 @@
                                             <button type="button" @click="if(qty > 1) qty--" class="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-white rounded-md transition-all font-bold disabled:opacity-50">
                                                 -
                                             </button>
-                                            <input type="number" x-model="qty" min="1" max="{{ $produk->stok }}" class="w-full text-center bg-transparent border-none p-0 text-xs font-bold text-gray-800 focus:ring-0 appearance-none h-7">
-                                            <button type="button" @click="if(qty < {{ $produk->stok }}) qty++" class="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-green-600 hover:bg-white rounded-md transition-all font-bold">
+                                            <input type="number" x-model="qty" min="1" :max="currentStock" class="w-full text-center bg-transparent border-none p-0 text-xs font-bold text-gray-800 focus:ring-0 appearance-none h-7">
+                                            <button type="button" @click="if(qty < currentStock) qty++" class="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-green-600 hover:bg-white rounded-md transition-all font-bold" :disabled="qty >= currentStock">
                                                 +
                                             </button>
                                         </div>
 
                                         <!-- Add Button -->
-                                        <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white p-2 rounded-lg shadow-md shadow-sky-200 transition-all active:scale-95 flex-shrink-0" title="Tambah ke Keranjang">
+                                        <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white p-2 rounded-lg shadow-md shadow-sky-200 transition-all active:scale-95 flex-shrink-0 disabled:opacity-50 disabled:grayscale" title="Tambah ke Keranjang" :disabled="currentStock <= 0">
                                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                                         </button>
                                     </div>
@@ -96,7 +106,10 @@
                 
                 <!-- HEADER: Info Transaksi -->
                 <div class="flex justify-between items-center border-b pb-3 mb-3 shrink-0">
-                    <h2 class="text-lg font-bold text-gray-800 tracking-tight">Keranjang</h2>
+                    <div>
+                        <h2 class="text-lg font-bold text-gray-800 tracking-tight">Keranjang</h2>
+                        <p class="text-[10px] text-gray-400">Member: <span id="current-customer-name" class="font-bold text-sky-600">{{ $activeDraft->pelanggan->nama ?? 'Umum' }}</span></p>
+                    </div>
                     <span class="text-xs font-mono font-bold text-sky-600 bg-sky-50 px-2 py-1 rounded">#{{ $activeDraft->id }}</span>
                 </div>
 
@@ -180,18 +193,6 @@
             </div>
         </div>
 
-            </div>
-        </div>
-
-            </div>
-        </div>
-
-            </div>
-        </div>
-
-            </div>
-        </div>
-
         <x-modal :name="'confirm-draft-cancel-'.$activeDraft->id" focusable>
             <form method="post" action="{{ route('pos.cancel_draft') }}" class="p-6">
                 @csrf
@@ -207,9 +208,30 @@
 
     </div>
 
-        <!-- Modal Cek Detail Pesanan (Full View) -->
+    <!-- Modal Cek Detail Pesanan (Full View) -->
     <x-modal name="full-cart-modal" focusable maxWidth="4xl">
-        <div class="p-6 bg-white rounded-2xl h-[80vh] flex flex-col">
+        <div class="p-6 bg-white rounded-2xl h-[80vh] flex flex-col" 
+             x-data="{ 
+                items: {{ $activeDraft->details->map(function($item) {
+                    return [
+                        'id' => $item->id,
+                        'produk_id' => $item->produk_id,
+                        'nama_produk' => $item->produk->nama_produk,
+                        'kategori' => $item->produk->kategori->nama ?? '-',
+                        'stok_asli' => $item->produk->stok + $item->jumlah,
+                        'harga_satuan' => number_format($item->harga_satuan, 0, ',', '.'),
+                        'jumlah' => $item->jumlah,
+                        'subtotal' => number_format($item->subtotal, 0, ',', '.')
+                    ];
+                })->toJson() }},
+                total: '{{ number_format($activeDraft->total, 0, ',', '.') }}',
+                updateData(newData) {
+                    this.items = newData.details;
+                    this.total = newData.total_format;
+                }
+             }"
+             x-on:cart-updated.window="updateData($event.detail)">
+            
             <div class="flex justify-between items-center mb-6 border-b pb-4">
                 <div>
                     <h2 class="text-2xl font-bold text-gray-800">Detail Pesanan</h2>
@@ -217,7 +239,7 @@
                 </div>
                 <div class="text-right">
                     <p class="text-sm text-gray-500">Total Sementara</p>
-                    <p class="text-2xl font-extrabold text-sky-600">Rp {{ number_format($activeDraft->total, 0, ',', '.') }}</p>
+                    <p class="text-2xl font-extrabold text-sky-600" x-text="'Rp ' + total"></p>
                 </div>
             </div>
 
@@ -233,63 +255,53 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        @forelse ($activeDraft->details as $item)
-                        <tr class="hover:bg-sky-50/50 transition-colors group" x-data="{ currentQty: {{ $item->jumlah }} }">
-                            <td class="py-4 px-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center text-sky-600 font-bold text-xs shrink-0">
-                                        {{ substr($item->produk->nama_produk, 0, 2) }}
+                        <template x-for="item in items" :key="item.id">
+                            <tr class="hover:bg-sky-50/50 transition-colors group">
+                                <td class="py-4 px-4">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center text-sky-600 font-bold text-xs shrink-0" x-text="item.nama_produk.substring(0, 2)"></div>
+                                        <div>
+                                            <div class="font-bold text-gray-800" x-text="item.nama_produk"></div>
+                                            <div class="text-xs text-gray-500" x-text="item.kategori + ' | Stok: ' + item.stok_asli"></div>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <div class="font-bold text-gray-800">{{ $item->produk->nama_produk }}</div>
-                                        <div class="text-xs text-gray-500">{{ $item->produk->kategori->nama ?? '-' }} | Stok: {{ $item->produk->stok + $item->jumlah }}</div>
+                                </td>
+                                <td class="py-4 px-4 text-right font-mono text-gray-600" x-text="'Rp ' + item.harga_satuan"></td>
+                                <td class="py-4 px-4 text-center">
+                                    <div class="inline-flex items-center bg-white border border-gray-200 rounded-lg shadow-sm">
+                                        <button type="button" 
+                                                @click="if(item.jumlah > 1) { item.jumlah--; updateItemQty(item.id, item.jumlah); }" 
+                                                class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-l-lg transition-colors"
+                                                :disabled="item.jumlah <= 1">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M20 12H4"></path></svg>
+                                        </button>
+                                        
+                                        <input type="text" x-model="item.jumlah" readonly 
+                                               class="w-10 h-8 text-center border-none p-0 text-sm font-bold text-gray-800 focus:ring-0 cursor-default">
+                                        
+                                        <button type="button" 
+                                                @click="if(item.jumlah < item.stok_asli) { item.jumlah++; updateItemQty(item.id, item.jumlah); } else { Toastify({ text: 'Stok habis!', duration: 2000, style: { background: '#ef4444' } }).showToast(); }" 
+                                                class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-r-lg transition-colors">
+                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
+                                        </button>
                                     </div>
-                                </div>
-                            </td>
-                            <td class="py-4 px-4 text-right font-mono text-gray-600">
-                                Rp {{ number_format($item->harga_satuan, 0, ',', '.') }}
-                            </td>
-                            <td class="py-4 px-4 text-center">
-                                <div class="inline-flex items-center bg-white border border-gray-200 rounded-lg shadow-sm">
-                                    <button type="button" 
-                                            @click="if(currentQty > 1) { currentQty--; updateItemQty({{ $item->id }}, currentQty); }" 
-                                            class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-l-lg transition-colors disabled:opacity-50"
-                                            :disabled="currentQty <= 1">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M20 12H4"></path></svg>
-                                    </button>
-                                    
-                                    <input type="text" x-model="currentQty" readonly 
-                                           class="w-10 h-8 text-center border-none p-0 text-sm font-bold text-gray-800 focus:ring-0 cursor-default">
-                                    
-                                    <button type="button" 
-                                            @click="if(currentQty < {{ $item->produk->stok + $item->jumlah }}) { currentQty++; updateItemQty({{ $item->id }}, currentQty); } else { Toastify({ text: 'Stok habis!', duration: 2000, style: { background: '#ef4444' } }).showToast(); }" 
-                                            class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-r-lg transition-colors">
-                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
-                                    </button>
-                                </div>
-                            </td>
-                            <td class="py-4 px-4 text-right font-bold text-gray-800 font-mono" id="item-subtotal-{{ $item->id }}">
-                                Rp {{ number_format($item->subtotal, 0, ',', '.') }}
-                            </td>
-                            <td class="py-4 px-4 text-center">
-                                <form action="{{ route('pos.remove_item') }}" method="POST" class="inline-block">
-                                    @csrf
-                                    <input type="hidden" name="transaksi_detail_id" value="{{ $item->id }}">
-                                    <button type="submit" class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus Item">
+                                </td>
+                                <td class="py-4 px-4 text-right font-bold text-gray-800 font-mono" x-text="'Rp ' + item.subtotal"></td>
+                                <td class="py-4 px-4 text-center">
+                                    <button type="button" @click="removeItemAJAX(item.id)" 
+                                            class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus Item">
                                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                     </button>
-                                </form>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
+                                </td>
+                            </tr>
+                        </template>
+                        <tr x-show="items.length === 0">
                             <td colspan="5" class="py-12 text-center text-gray-400">
                                 <svg class="w-16 h-16 mx-auto mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                                 <p class="text-lg font-medium">Keranjang masih kosong</p>
                                 <p class="text-sm">Scan barcode atau pilih produk untuk menambahkan.</p>
                             </td>
                         </tr>
-                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -300,7 +312,8 @@
                     Tutup & Lanjut Belanja
                 </button>
                 <a href="{{ route('pos.checkout.show', $activeDraft) }}" 
-                   class="px-6 py-2.5 bg-sky-600 text-white font-bold rounded-xl shadow-lg shadow-sky-200 hover:bg-sky-700 transition-transform transform hover:-translate-y-0.5 {{ $activeDraft->details->isEmpty() ? 'hidden' : '' }}">
+                   class="px-6 py-2.5 bg-sky-600 text-white font-bold rounded-xl shadow-lg shadow-sky-200 hover:bg-sky-700 transition-transform transform hover:-translate-y-0.5"
+                   :class="items.length === 0 ? 'hidden' : ''">
                     Lanjut ke Pembayaran &rarr;
                 </a>
             </div>
@@ -308,12 +321,13 @@
     </x-modal>
 
     <!-- Modal Tambah Member Baru -->
-        <x-modal name="add-member-modal" focusable>
-            <form method="post" action="{{ route('pos.store_member') }}" class="p-6">
-                @csrf
-                <input type="hidden" name="transaksi_id" value="{{ $activeDraft->id }}">
-                
-                <div class="flex justify-between items-center mb-6">                <h2 class="text-xl font-bold text-gray-900">
+    <x-modal name="add-member-modal" focusable>
+        <form method="post" action="{{ route('pos.store_member') }}" class="p-6">
+            @csrf
+            <input type="hidden" name="transaksi_id" value="{{ $activeDraft->id }}">
+            
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-gray-900">
                     Daftar Member Baru
                 </h2>
                 <button type="button" x-on:click="$dispatch('close')" class="text-gray-400 hover:text-gray-500">
@@ -358,7 +372,6 @@
     <x-modal name="scan-barcode-modal" focusable maxWidth="md">
         <div class="p-5" x-data="{ scanMode: 'manual' }" x-init="$watch('scanMode', val => { if(val === 'manual') setTimeout(() => $refs.manualInput.focus(), 100); else if(val === 'camera') startCameraScan(); else stopBarcodeScanner(); })">
             
-            <!-- Header -->
             <div class="flex justify-between items-center mb-4 border-b pb-3">
                 <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
                     <svg class="w-6 h-6 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
@@ -369,41 +382,30 @@
                 </button>
             </div>
             
-            <!-- Tab Navigasi -->
             <div class="flex p-1 bg-gray-100 rounded-xl mb-4">
                 <button @click="scanMode = 'manual'; stopBarcodeScanner();" 
                         :class="scanMode === 'manual' ? 'bg-white text-sky-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
                         class="flex-1 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"></path></svg>
                     Input / Scanner
                 </button>
                 <button @click="scanMode = 'camera'" 
                         :class="scanMode === 'camera' ? 'bg-white text-sky-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
                         class="flex-1 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22a2 2 0 001.664.89H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
                     Kamera HP
                 </button>
             </div>
 
-            <!-- MODE 1: MANUAL INPUT -->
             <div x-show="scanMode === 'manual'" class="space-y-4">
                 <div class="bg-sky-50 p-4 rounded-xl border border-sky-100 text-center">
                     <label class="block text-xs font-bold text-sky-700 uppercase mb-2">Kode Barcode</label>
-                    <input type="text" 
-                           id="manual-barcode-input"
-                           x-ref="manualInput"
+                    <input type="text" id="manual-barcode-input" x-ref="manualInput"
                            class="w-full text-center border-2 border-sky-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-4 focus:ring-sky-200 font-mono text-xl font-bold placeholder-sky-300 transition-all bg-white"
                            placeholder="Scan / Ketik..."
-                           onkeypress="if(event.key === 'Enter') { processQuickScan(this.value); this.value = ''; }">
+                           onkeydown="if(event.key === 'Enter') { event.preventDefault(); processQuickScan(this.value); this.value = ''; }">
                     <p class="text-[10px] text-sky-600 mt-2 font-medium">Tekan ENTER setelah input.</p>
-                </div>
-                
-                <div class="text-center">
-                    <p class="text-xs text-gray-400">Gunakan scanner fisik atau ketik kode manual.</p>
                 </div>
             </div>
 
-            <!-- MODE 2: KAMERA -->
             <div x-show="scanMode === 'camera'" style="display: none;" class="space-y-4">
                 <div class="bg-black rounded-xl overflow-hidden relative h-[250px] border-2 border-gray-800 shadow-inner">
                     <div id="reader-barcode" class="w-full h-full object-cover"></div>
@@ -412,16 +414,12 @@
                         <p class="text-xs">Menyiapkan kamera...</p>
                     </div>
                 </div>
-
-                <div class="grid grid-cols-1 gap-3">
-                    <button onclick="document.getElementById('barcode-file-input').click()" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition w-full">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                        Upload Foto Barcode
-                    </button>
-                    <input type="file" id="barcode-file-input" accept="image/*" class="hidden">
-                </div>
+                <button onclick="document.getElementById('barcode-file-input').click()" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition w-full">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Upload Foto Barcode
+                </button>
+                <input type="file" id="barcode-file-input" accept="image/*" class="hidden">
             </div>
-
         </div>
     </x-modal>
 
@@ -430,212 +428,138 @@
         let html5QrCode = null;
         const beepSound = new Audio("https://www.soundjay.com/buttons/sounds/button-3.mp3");
 
-        function initScanner() {
-            if (html5QrCode === null) {
-                html5QrCode = new Html5Qrcode("reader-barcode");
-            }
-        }
-
-        // 1. SCAN PAKE KAMERA
+        function initScanner() { if (html5QrCode === null) html5QrCode = new Html5Qrcode("reader-barcode"); }
         function startCameraScan() {
             initScanner();
             document.getElementById('camera-placeholder').style.display = 'none';
-            
-            const config = { fps: 10, qrbox: { width: 250, height: 150 }, aspectRatio: 1.0 };
-            
-            html5QrCode.start({ facingMode: "environment" }, config, onBarcodeScanSuccess)
-            .catch(err => {
-                console.error("Gagal start kamera", err);
-                document.getElementById('camera-placeholder').style.display = 'flex';
-                document.getElementById('camera-placeholder').innerHTML = '<p class="text-red-500 text-xs text-center px-4">Kamera tidak dapat diakses.<br>Pastikan izin browser diberikan.</p>';
-            });
+            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onBarcodeScanSuccess)
+            .catch(err => { document.getElementById('camera-placeholder').style.display = 'flex'; });
         }
+        function stopBarcodeScanner() { if (html5QrCode && html5QrCode.isScanning) html5QrCode.stop().then(() => html5QrCode.clear()); }
+        function onBarcodeScanSuccess(decodedText) { processQuickScan(decodedText); if(html5QrCode && html5QrCode.isScanning) { html5QrCode.pause(); setTimeout(() => html5QrCode.resume(), 2000); } }
 
-        // 2. SCAN PAKE FILE (UPLOAD)
-        document.getElementById('barcode-file-input').addEventListener('change', e => {
-            if (e.target.files.length == 0) return;
-            
-            const imageFile = e.target.files[0];
-            initScanner();
-
-            // Scan file
-            html5QrCode.scanFile(imageFile, true)
-            .then(decodedText => onBarcodeScanSuccess(decodedText))
-            .catch(err => {
-                Toastify({ text: "Barcode tidak terbaca.", duration: 3000, style: { background: "#ef4444" } }).showToast();
+        // --- REAL-TIME STOCK LOGIC ---
+        function refreshAllProductStocks(cartDetails) {
+            // Reset all to original stock
+            document.querySelectorAll('.product-card').forEach(card => {
+                const id = card.getAttribute('data-produk-id');
+                const asli = parseInt(card.getAttribute('data-stok-asli'));
+                window.dispatchEvent(new CustomEvent('stock-updated-' + id, { detail: { available: asli } }));
             });
-        });
-
-        function stopBarcodeScanner() {
-            if (html5QrCode) {
-                if(html5QrCode.isScanning) {
-                    html5QrCode.stop().then(() => {
-                        html5QrCode.clear();
-                        document.getElementById('camera-placeholder').style.display = 'flex';
-                    }).catch(err => console.log(err));
+            // Subtract cart quantities
+            cartDetails.forEach(item => {
+                const card = document.querySelector(`.product-card[data-produk-id="${item.produk_id}"]`);
+                if (card) {
+                    const asli = parseInt(card.getAttribute('data-stok-asli'));
+                    window.dispatchEvent(new CustomEvent('stock-updated-' + item.produk_id, { detail: { available: asli - item.jumlah } }));
                 }
-            }
+            });
         }
 
-        // LOGIKA SUKSES SCAN (SAMA)
-        function onBarcodeScanSuccess(decodedText, decodedResult) {
-            processQuickScan(decodedText);
-            
-            if(html5QrCode && html5QrCode.isScanning) {
-                html5QrCode.pause(); 
-                setTimeout(() => html5QrCode.resume(), 2000);
-            }
+        async function addItemAJAX(form) {
+            const formData = new FormData(form);
+            try {
+                let res = await fetch('{{ route("pos.add_item") }}', {
+                    method: 'POST',
+                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                    body: formData
+                });
+                let result = await res.json();
+                if (result.status === 'success') {
+                    beepSound.play().catch(() => {});
+                    Toastify({ text: result.message, duration: 2000, style: { background: "#10b981" } }).showToast();
+                    updateUIFromCart(result.data);
+                } else {
+                    Toastify({ text: result.message, duration: 3000, style: { background: "#ef4444" } }).showToast();
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        async function removeItemAJAX(detailId) {
+            try {
+                let res = await fetch('{{ route("pos.remove_item") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                    body: JSON.stringify({ transaksi_detail_id: detailId })
+                });
+                let result = await res.json();
+                if (result.status === 'success') {
+                    Toastify({ text: result.message, duration: 2000, style: { background: "#10b981" } }).showToast();
+                    updateUIFromCart(result.data);
+                }
+            } catch (err) { console.error(err); }
+        }
+
+        function updateUIFromCart(data) {
+            const sbTotal = document.getElementById('sidebar-cart-total');
+            const sbSub = document.getElementById('sidebar-cart-subtotal');
+            if(sbTotal) sbTotal.innerText = 'Rp ' + data.total_format;
+            if(sbSub) sbSub.innerText = 'Rp ' + data.total_format;
+            const badge = document.getElementById('cart-count-badge');
+            if(badge) { badge.innerText = data.cart_count; badge.classList.toggle('hidden', data.cart_count === 0); }
+            window.dispatchEvent(new CustomEvent('cart-updated', { detail: data }));
+            refreshAllProductStocks(data.details);
         }
 
         function processQuickScan(barcode) {
             if(!barcode) return;
-
             fetch('{{ route("pos.scan") }}', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({
-                    barcode: barcode,
-                    transaksi_id: '{{ $activeDraft->id }}'
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    beepSound.play().catch(() => {});
-                    Toastify({ text: data.message, duration: 2000, style: { background: "#10b981" } }).showToast();
-                    setTimeout(() => { window.location.reload(); }, 500); 
-                } else {
-                    Toastify({ text: data.message, duration: 3000, style: { background: "#ef4444" } }).showToast();
-                }
-            })
-            .catch(error => console.error('Error:', error));
-        }
-
-        window.addEventListener('close-modal', event => {
-            if (event.detail === 'scan-barcode-modal') {
-                stopBarcodeScanner();
-            }
-        });
-    </script>
-
-    <script>
-        function updateItemQty(detailId, newQty) {
-            // Prevent negative or zero
-            if(newQty < 1) return;
-
-            fetch('{{ route('pos.update_item') }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Accept': 'application/json'
-                },
-                body: JSON.stringify({
-                    transaksi_detail_id: detailId,
-                    qty: newQty
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if(data.status === 'success') {
-                    // 1. Update Item Subtotal (Inside Modal)
-                    const itemSubtotalEl = document.getElementById('item-subtotal-' + detailId);
-                    if(itemSubtotalEl) itemSubtotalEl.innerText = 'Rp ' + data.item_subtotal;
-
-                    // 2. Update Modal Totals
-                    const cartSubtotalEl = document.getElementById('cart-subtotal'); // ID ini mungkin perlu ditambahkan di modal jika belum ada
-                    const cartTotalEl = document.getElementById('cart-total'); // ID ini mungkin perlu ditambahkan di modal jika belum ada
-                    
-                    // 3. Update Sidebar Totals (Outside Modal) - SINKRONISASI PENTING
-                    const sidebarTotal = document.getElementById('sidebar-cart-total');
-                    const sidebarSubtotal = document.getElementById('sidebar-cart-subtotal');
-                    
-                    if(sidebarTotal) sidebarTotal.innerText = 'Rp ' + data.transaksi_total;
-                    if(sidebarSubtotal) sidebarSubtotal.innerText = 'Rp ' + data.transaksi_total;
-
-                    // 4. Update Badge Count (Pesanan Tersimpan)
-                    const badge = document.getElementById('cart-count-badge');
-                    if(badge) {
-                        badge.innerText = data.cart_count;
-                        if(data.cart_count > 0) {
-                            badge.classList.remove('hidden');
-                        } else {
-                            badge.classList.add('hidden');
-                        }
-                    }
-                } else {
-                    if(typeof Toastify === 'function') {
-                        Toastify({ text: data.message || 'Gagal update qty', duration: 3000, style: { background: "#ef4444" } }).showToast();
-                    } else {
-                        alert(data.message || 'Gagal update qty');
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-        }
-
-        let voucherTimeout = null;
-
-        function debounceCheckVoucher() {
-            clearTimeout(voucherTimeout);
-            const messageEl = document.getElementById('voucher-message');
-            const loadingEl = document.getElementById('voucher-loading');
-            
-            messageEl.classList.add('hidden');
-            loadingEl.classList.remove('hidden');
-
-            voucherTimeout = setTimeout(() => {
-                checkVoucher();
-            }, 800); // Wait 800ms after typing stops
-        }
-
-        function checkVoucher() {
-            const code = document.getElementById('voucher-code').value;
-            const messageEl = document.getElementById('voucher-message');
-            const loadingEl = document.getElementById('voucher-loading');
-            
-            if(!code) {
-                loadingEl.classList.add('hidden');
-                return;
-            }
-
-            fetch('{{ route('pos.check_voucher') }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                },
-                body: JSON.stringify({
-                    kode: code,
-                    transaksi_id: '{{ $activeDraft->id }}'
-                })
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                body: JSON.stringify({ barcode: barcode, transaksi_id: '{{ $activeDraft->id }}' })
             })
             .then(res => res.json())
-            .then(data => {
-                loadingEl.classList.add('hidden');
-                messageEl.classList.remove('hidden', 'text-green-600', 'text-red-500');
-                
-                if(data.status === 'success') {
-                    messageEl.classList.add('text-green-600');
-                    messageEl.innerText = "Voucher Aktif: " + data.voucher_info;
-                    Toastify({ text: "Voucher berhasil diterapkan!", duration: 3000, style: { background: "#10b981" } }).showToast();
-                    
-                    // Reload to update totals
-                    setTimeout(() => window.location.reload(), 1000);
+            .then(result => {
+                if (result.status === 'success') {
+                    beepSound.play().catch(() => {});
+                    Toastify({ text: result.message, duration: 2000, style: { background: "#10b981" } }).showToast();
+                    updateUIFromCart(result.data);
+                    if(result.data.pelanggan) document.getElementById('current-customer-name').innerText = result.data.pelanggan;
+                    if (!document.body.classList.contains('overflow-y-hidden')) window.dispatchEvent(new CustomEvent('open-modal', { detail: 'full-cart-modal' }));
                 } else {
-                    messageEl.classList.add('text-red-500');
-                    messageEl.innerText = data.message;
+                    Toastify({ text: result.message, duration: 3000, style: { background: "#ef4444" } }).showToast();
                 }
-            })
-            .catch(err => {
-                console.error(err);
-                loadingEl.classList.add('hidden');
             });
         }
+
+        function updateItemQty(detailId, newQty) {
+            if(newQty < 1) return;
+            fetch('{{ route("pos.update_item") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
+                body: JSON.stringify({ transaksi_detail_id: detailId, qty: newQty })
+            })
+            .then(res => res.json())
+            .then(result => {
+                if(result.status === 'success') updateUIFromCart(result.data);
+                else Toastify({ text: result.message, duration: 3000, style: { background: "#ef4444" } }).showToast();
+            });
+        }
+
+        // --- GLOBAL KEY LISTENERS ---
+        let barcodeBuffer = '';
+        let barcodeTimeout = null;
+        document.addEventListener('keydown', e => {
+            if (e.key === 'F12' || (e.key.startsWith('F') && e.key !== 'F5')) e.preventDefault();
+            if (e.ctrlKey && e.shiftKey && ['I', 'J', 'C', 'K', 'L'].includes(e.key.toUpperCase())) e.preventDefault();
+            if (e.key.length === 1) {
+                barcodeBuffer += e.key;
+                if (barcodeTimeout) clearTimeout(barcodeTimeout);
+                barcodeTimeout = setTimeout(() => { barcodeBuffer = ''; }, 150);
+            } else if (e.key === 'Enter' && barcodeBuffer.length >= 3) {
+                e.preventDefault(); e.stopImmediatePropagation();
+                processQuickScan(barcodeBuffer);
+                barcodeBuffer = '';
+            }
+        });
+
+        const searchInp = document.getElementById('pos-search-input');
+        if (searchInp) searchInp.addEventListener('keydown', e => { if (e.key === 'Enter') { const val = e.target.value.trim(); if (val.length >= 3) { e.preventDefault(); processQuickScan(val); e.target.value = ''; } } });
+
+        window.addEventListener('load', () => {
+            const params = new URLSearchParams(window.location.search);
+            const openM = params.get('open_modal');
+            if (openM) window.dispatchEvent(new CustomEvent('open-modal', { detail: openM }));
+        });
     </script>
 </x-app-layout>

@@ -42,6 +42,33 @@
             memberId: '{{ $pelanggan ? $pelanggan->id : "" }}',
             searchLoading: false,
 
+            async checkMemberByBarcode(barcode) {
+                if (!barcode) return;
+                this.searchLoading = true;
+                try {
+                    // We'll reuse search_member or add a specific barcode one if needed
+                    // For now, let's assume search_member can handle kode_member too (we should check controller)
+                    let response = await fetch(`{{ route('pos.search_member') }}?kode_member=${barcode}`);
+                    let data = await response.json();
+                    
+                    if (data.valid) {
+                        this.memberFound = true;
+                        this.memberName = data.member.nama;
+                        this.poinAvailable = data.member.poin;
+                        this.memberId = data.member.id;
+                        this.memberPhone = data.member.no_hp;
+                        this.poinUsed = 0; 
+                        Toastify({ text: 'Member Ditemukan: ' + data.member.nama, duration: 3000, style: { background: '#10b981' } }).showToast();
+                    } else {
+                        Toastify({ text: 'Member tidak ditemukan!', duration: 3000, style: { background: '#ef4444' } }).showToast();
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                } finally {
+                    this.searchLoading = false;
+                }
+            },
+
             async checkMemberByPhone() {
                 if (!this.memberPhone) {
                     Toastify({ text: 'Masukkan nomor HP!', duration: 3000, style: { background: '#ef4444' } }).showToast();
@@ -141,7 +168,8 @@
                 }
             }
         }"
-        x-init="selectMethod('Tunai', 'Tunai')" 
+        x-init="selectMethod('Tunai', 'Tunai')"
+        x-on:scan-member.window="checkMemberByBarcode($event.detail)"
     >
         <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 pb-4 border-b border-gray-200">
             <div>
@@ -365,4 +393,53 @@
         </form>
 
     </div>
+
+    <script>
+        // Global Barcode Scanner Collector for Checkout
+        let barcodeBuffer = '';
+        let barcodeTimeout = null;
+
+        document.addEventListener('keydown', function(e) {
+            // Block DevTools & Common Shortcuts
+            if (e.key === 'F12' || (e.key.startsWith('F') && e.key !== 'F5')) {
+                e.preventDefault();
+                return false;
+            }
+            if (e.ctrlKey && e.shiftKey && ['I', 'J', 'C', 'K', 'L'].includes(e.key.toUpperCase())) {
+                e.preventDefault();
+                return false;
+            }
+
+            // Capture alphanumeric keys globally
+            if (e.key.length === 1) {
+                barcodeBuffer += e.key;
+                
+                if (barcodeTimeout) clearTimeout(barcodeTimeout);
+                barcodeTimeout = setTimeout(() => {
+                    barcodeBuffer = ''; // Reset if slow (manual typing)
+                }, 150); // Increased slightly for stability
+            } else if (e.key === 'Enter') {
+                // If the buffer looks like a member code
+                if (barcodeBuffer.includes('MBR')) {
+                    e.preventDefault();
+                    
+                    // Show a quick "processing" toast
+                    Toastify({ 
+                        text: 'Memproses scan member...', 
+                        duration: 1500, 
+                        style: { background: '#0ea5e9' } 
+                    }).showToast();
+
+                    // Dispatch event to Alpine.js component
+                    window.dispatchEvent(new CustomEvent('scan-member', { detail: barcodeBuffer.trim() }));
+                    
+                    barcodeBuffer = '';
+                    if (barcodeTimeout) clearTimeout(barcodeTimeout);
+                } else {
+                    // Regular enter (e.g. submitting form), allow it
+                    barcodeBuffer = '';
+                }
+            }
+        });
+    </script>
 </x-app-layout>

@@ -241,7 +241,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::middleware([\App\Http\Middleware\CheckRoleMiddleware::class . ':admin'])->group(function () {
         
         Route::resource('kategori', KategoriController::class);
-        Route::resource('produk', ProdukController::class); 
+        Route::get('produk/check-barcode/{barcode}', [ProdukController::class, 'checkBarcode'])->name('produk.check-barcode');
+    Route::resource('produk', ProdukController::class); 
 
         Route::get('stok-log/create', [StokLogController::class, 'create'])->name('stok_log.create');
         Route::post('stok-log', [StokLogController::class, 'store'])->name('stok_log.store');

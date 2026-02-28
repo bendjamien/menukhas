@@ -193,4 +193,52 @@
         </footer>
 
     </div>
+
+    <!-- Modal Konfirmasi Cetak / Selesai -->
+    <x-modal name="after-checkout-modal" focusable maxWidth="md">
+        <div class="p-6 text-center">
+            <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+            </div>
+            <h2 class="text-xl font-bold text-gray-800 mb-2">Transaksi Selesai!</h2>
+            <p class="text-gray-500 mb-6">Pilih aksi selanjutnya untuk transaksi ini.</p>
+
+            <div class="grid grid-cols-1 gap-3">
+                <button onclick="printStruk('{{ route('transaksi.cetak_struk', $transaksi->id) }}')" 
+                        class="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                    Cetak Struk Thermal
+                </button>
+
+                <button onclick="window.print()" 
+                        class="flex items-center justify-center gap-2 bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-4 rounded-xl transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Cetak PDF / Invoice
+                </button>
+
+                <div class="pt-2">
+                    <a href="{{ route('pos.index') }}" 
+                       class="flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 px-4 rounded-xl transition-all border border-gray-200">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 15l-3-3m0 0l3-3m-3 3h8M3 12a9 9 0 1118 0 9 9 0 01-18 0z"></path></svg>
+                        Selesai & Kembali ke POS
+                    </a>
+                </div>
+            </div>
+        </div>
+    </x-modal>
+
+    <script>
+        window.addEventListener('load', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('show_modal') === 'true') {
+                setTimeout(() => {
+                    window.dispatchEvent(new CustomEvent('open-modal', { detail: 'after-checkout-modal' }));
+                }, 300);
+                
+                // Bersihkan URL agar modal tidak muncul lagi jika direfresh
+                const newUrl = window.location.pathname;
+                window.history.replaceState({}, '', newUrl);
+            }
+        });
+    </script>
 </x-app-layout>

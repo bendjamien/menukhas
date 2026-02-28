@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Pelanggan;
 use Illuminate\Http\Request; 
+use Illuminate\Support\Facades\Mail;
+use App\Mail\MemberCardMail;
 
 class PelangganController extends Controller
 {
@@ -15,6 +17,7 @@ class PelangganController extends Controller
 
         if ($search) {
             $query->where('nama', 'like', "%{$search}%")
+                  ->orWhere('kode_member', 'like', "%{$search}%")
                   ->orWhere('no_hp', 'like', "%{$search}%")
                   ->orWhere('email', 'like', "%{$search}%");
         }
@@ -41,7 +44,17 @@ class PelangganController extends Controller
             'member_level' => 'nullable|string|max:50',
             'poin' => 'nullable|integer',
         ]);
-        Pelanggan::create($request->all());
+        
+        $pelanggan = Pelanggan::create($request->all());
+        
+        if ($pelanggan->email) {
+            try {
+                Mail::to($pelanggan->email)->send(new MemberCardMail($pelanggan));
+            } catch (\Exception $e) {
+                // Log error jika email gagal terkirim (opsional)
+            }
+        }
+        
         return redirect()->route('pelanggan.index')
                          ->with('toast_success', 'Data pelanggan berhasil ditambahkan!');
     }

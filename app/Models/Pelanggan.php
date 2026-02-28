@@ -14,6 +14,7 @@ class Pelanggan extends Model
     public $timestamps = false;
 
     protected $fillable = [
+        'kode_member',
         'nama',
         'no_hp',
         'alamat',
@@ -21,6 +22,19 @@ class Pelanggan extends Model
         'member_level',
         'poin',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+        
+        static::creating(function ($pelanggan) {
+            if (!$pelanggan->kode_member) {
+                $lastMember = self::orderBy('id', 'desc')->first();
+                $lastNumber = $lastMember ? (int) substr($lastMember->kode_member, 3) : 0;
+                $pelanggan->kode_member = 'MBR' . str_pad($lastNumber + 1, 5, '0', STR_PAD_LEFT);
+            }
+        });
+    }
 
     public function recalculateLevel()
     {

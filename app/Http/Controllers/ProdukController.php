@@ -9,6 +9,55 @@ use Milon\Barcode\DNS1D;
 
 class ProdukController extends Controller
 {
+    public function checkBarcode($barcode)
+    {
+        // 1. Cek di database lokal dulu
+        $produk = Produk::where('kode_barcode', $barcode)->first();
+        if ($produk) {
+            return response()->json([
+                'status' => 'success',
+                'source' => 'local',
+                'data' => [
+                    'nama_produk' => $produk->nama_produk,
+                    'kategori_id' => $produk->kategori_id,
+                    'harga_beli' => $produk->harga_beli,
+                    'harga_jual' => $produk->harga_jual,
+                    'satuan' => $produk->satuan,
+                ]
+            ]);
+        }
+
+        // 2. Cek di API Open Food Facts (Public database - Mostly Food)
+        try {
+            $client = new \GuzzleHttp\Client();
+            $response = $client->get("https://world.openfoodfacts.org/api/v0/product/{$barcode}.json", [
+                'timeout' => 5,
+                'http_errors' => false
+            ]);
+            
+            if ($response->getStatusCode() == 200) {
+                $body = json_decode($response->getBody(), true);
+                if (isset($body['status']) && $body['status'] == 1 && isset($body['product']['product_name'])) {
+                    return response()->json([
+                        'status' => 'success',
+                        'source' => 'external',
+                        'data' => [
+                            'nama_produk' => $body['product']['product_name'],
+                            'satuan' => 'PCS'
+                        ]
+                    ]);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error("Barcode API Error: " . $e->getMessage());
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Produk tidak ditemukan di database makanan (OpenFoodFacts).'
+        ]);
+    }
+
     public function index(Request $request) 
     {
         $search = $request->query('search');

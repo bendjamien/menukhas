@@ -99,33 +99,29 @@ class PosController extends Controller
         $validated = $request->validate([
             'produk_id' => 'required|exists:produk,id',
             'transaksi_id' => 'required|exists:transaksi,id',
-            'qty' => 'nullable|integer|min:1', // Validasi qty
+            'qty' => 'nullable|integer|min:1',
         ]);
 
-        $qtyToAdd = $request->input('qty', 1); // Default 1 jika tidak ada
-
+        $qtyToAdd = $request->input('qty', 1);
         $produk = Produk::find($validated['produk_id']);
         $transaksi = Transaksi::find($validated['transaksi_id']);
-
-        if ($produk->stok <= 0) {
-            return back()->with('toast_danger', 'Stok habis!');
-        }
 
         $item = $transaksi->details()->where('produk_id', $produk->id)->first();
         $jumlahDiKeranjang = $item ? $item->jumlah : 0;
 
-        // Cek apakah stok cukup untuk penambahan ini
         if (($jumlahDiKeranjang + $qtyToAdd) > $produk->stok) {
-            return back()->with('toast_danger', 'Stok tidak cukup. Sisa: ' . $produk->stok);
+            $msg = 'Stok tidak cukup. Sisa: ' . ($produk->stok - $jumlahDiKeranjang);
+            if ($request->expectsJson()) return response()->json(['status' => 'error', 'message' => $msg], 422);
+            return back()->with('toast_danger', $msg);
         }
 
         if ($item) {
-            $item->increment('jumlah', $qtyToAdd); // Increment sesuai qty
+            $item->increment('jumlah', $qtyToAdd);
             $item->update(['subtotal' => $item->jumlah * $item->harga_satuan]);
         } else {
             $transaksi->details()->create([
                 'produk_id' => $produk->id,
-                'jumlah' => $qtyToAdd, // Gunakan qty input
+                'jumlah' => $qtyToAdd,
                 'harga_satuan' => $produk->harga_jual,
                 'subtotal' => $produk->harga_jual * $qtyToAdd,
             ]);
@@ -133,11 +129,12 @@ class PosController extends Controller
 
         $this->recalculateTransactionTotal($transaksi);
         
-        $detailId = $item ? $item->id : $transaksi->details()->where('produk_id', $produk->id)->first()->id;
+        if ($request->expectsJson()) {
+            return $this->getCartResponse($transaksi, "{$produk->nama_produk} ditambahkan!");
+        }
 
         return redirect()->route('pos.index', ['transaksi' => $transaksi->id])
-            ->with('highlight_id', $detailId)
-            ->with('toast_success', "<b>{$produk->nama_produk}</b> (+{$qtyToAdd}) ditambahkan!");
+            ->with('toast_success', "<b>{$produk->nama_produk}</b> ditambahkan!");
     }
 
     public function updateItem(Request $request)
@@ -147,16 +144,13 @@ class PosController extends Controller
             'qty' => 'required|integer|min:1',
         ]);
 
-        $item = TransaksiDetail::find($validated['transaksi_detail_id']);
-        
-        if ($validated['qty'] > $item->produk->stok) {
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'status' => 'error',
-                    'message' => 'Melebihi stok! Sisa: ' . $item->produk->stok
-                ], 422);
-            }
-            return back()->with('toast_danger', 'Melebihi stok! Sisa: ' . $item->produk->stok);
+        $item = TransaksiDetail::with('produk')->find($validated['transaksi_detail_id']);
+        $transaksi = $item->transaksi;
+
+        if ($validated['qty'] > ($item->produk->stok + $item->jumlah)) {
+            $msg = 'Melebihi stok! Sisa: ' . ($item->produk->stok + $item->jumlah);
+            if ($request->expectsJson()) return response()->json(['status' => 'error', 'message' => $msg], 422);
+            return back()->with('toast_danger', $msg);
         }
 
         $item->update([
@@ -164,29 +158,25 @@ class PosController extends Controller
             'subtotal' => $validated['qty'] * $item->harga_satuan
         ]);
 
-        $this->recalculateTransactionTotal($item->transaksi);
+        $this->recalculateTransactionTotal($transaksi);
 
         if ($request->expectsJson()) {
-            return response()->json([
-                'status' => 'success',
-                'item_subtotal' => number_format($item->subtotal, 0, ',', '.'),
-                'item_subtotal_raw' => $item->subtotal,
-                'transaksi_total' => number_format($item->transaksi->total, 0, ',', '.'),
-                'transaksi_total_raw' => $item->transaksi->total,
-                'cart_count' => $item->transaksi->details->sum('jumlah'), // Tambahan: Total Qty
-                'message' => 'Jumlah berhasil diupdate'
-            ]);
+            return $this->getCartResponse($transaksi, 'Jumlah diperbarui.');
         }
 
         return back();
     }
-
     public function removeItem(Request $request)
     {
         $item = TransaksiDetail::findOrFail($request->transaksi_detail_id);
         $transaksi = $item->transaksi;
         $item->delete();
         $this->recalculateTransactionTotal($transaksi);
+
+        if ($request->expectsJson()) {
+            return $this->getCartResponse($transaksi, 'Item dihapus.');
+        }
+
         return back();
     }
 
@@ -239,7 +229,17 @@ class PosController extends Controller
     public function searchMember(Request $request)
     {
         $no_hp = $request->no_hp;
-        $member = Pelanggan::where('no_hp', $no_hp)->first();
+        $kode_member = $request->kode_member;
+
+        $query = Pelanggan::query();
+
+        if ($kode_member) {
+            $query->where('kode_member', $kode_member);
+        } else {
+            $query->where('no_hp', $no_hp);
+        }
+
+        $member = $query->first();
 
         if ($member) {
             return response()->json([
@@ -293,38 +293,54 @@ class PosController extends Controller
 
         $barcode = $request->barcode;
         $transaksiId = $request->transaksi_id;
+        $transaksi = Transaksi::find($transaksiId);
 
-        // Cari Produk by Barcode
+        // 1. Cek apakah ini KODE MEMBER (Diawali MBR)
+        if (str_starts_with($barcode, 'MBR')) {
+            $pelanggan = Pelanggan::where('kode_member', $barcode)->first();
+            if ($pelanggan) {
+                $transaksi->update(['pelanggan_id' => $pelanggan->id]);
+                return response()->json([
+                    'status' => 'success',
+                    'message' => "Member: {$pelanggan->nama} berhasil dipilih!",
+                    'data' => [
+                        'total_format' => number_format($transaksi->total, 0, ',', '.'),
+                        'cart_count' => $transaksi->details->sum('jumlah'),
+                        'pelanggan' => $pelanggan->nama,
+                        'details' => $transaksi->details->map(function($item) {
+                            return [
+                                'id' => $item->id,
+                                'nama_produk' => $item->produk->nama_produk,
+                                'kategori' => $item->produk->kategori->nama ?? '-',
+                                'stok_asli' => $item->produk->stok + $item->jumlah,
+                                'harga_satuan' => number_format($item->harga_satuan, 0, ',', '.'),
+                                'jumlah' => $item->jumlah,
+                                'subtotal' => number_format($item->subtotal, 0, ',', '.')
+                            ];
+                        })
+                    ]
+                ]);
+            }
+        }
+
+        // 2. Jika bukan member, maka anggap PRODUK
         $produk = Produk::where('kode_barcode', $barcode)->first();
 
         if (!$produk) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Produk tidak ditemukan!'
-            ], 404);
+            return response()->json(['status' => 'error', 'message' => 'Produk tidak ditemukan!'], 404);
         }
 
         if ($produk->stok <= 0) {
-            return response()->json([
-                'status' => 'error',
-                'message' => "Stok {$produk->nama_produk} habis!"
-            ], 400);
+            return response()->json(['status' => 'error', 'message' => "Stok {$produk->nama_produk} habis!"], 400);
         }
 
         $transaksi = Transaksi::find($transaksiId);
         $item = $transaksi->details()->where('produk_id', $produk->id)->first();
         
-        $currentQty = $item ? $item->jumlah : 0;
-
-        if (($currentQty + 1) > $produk->stok) {
-            return response()->json([
-                'status' => 'error',
-                'message' => "Stok tidak cukup. Sisa: {$produk->stok}"
-            ], 400);
-        }
-
-        // Add or Update Item
         if ($item) {
+            if (($item->jumlah + 1) > ($produk->stok + $item->jumlah)) {
+                return response()->json(['status' => 'error', 'message' => "Stok tidak cukup!"], 400);
+            }
             $item->increment('jumlah');
             $item->update(['subtotal' => $item->jumlah * $item->harga_satuan]);
         } else {
@@ -337,12 +353,7 @@ class PosController extends Controller
         }
 
         $this->recalculateTransactionTotal($transaksi);
-
-        return response()->json([
-            'status' => 'success',
-            'message' => "{$produk->nama_produk} berhasil ditambahkan!",
-            'cart_total' => number_format($transaksi->total, 0, ',', '.')
-        ]);
+        return $this->getCartResponse($transaksi, "{$produk->nama_produk} ditambahkan!");
     }
 
     public function showCheckoutForm(Transaksi $transaksi)
@@ -515,7 +526,8 @@ class PosController extends Controller
                     'referensi' => 'Cashier'
                 ]);
                 DB::commit();
-                return redirect()->route('transaksi.show', $transaksi)->with('toast_success', 'Transaksi Selesai!');
+                return redirect()->route('transaksi.show', ['transaksi' => $transaksi->id, 'show_modal' => 'true'])
+                                 ->with('toast_success', 'Transaksi Selesai!');
             }
 
             // --- PERBAIKAN: MENGGUNAKAN CONFIG() ---
@@ -622,7 +634,7 @@ class PosController extends Controller
     {
         if ($transaksi->status == 'pending') {
             $transaksi->update(['status' => 'selesai']);
-            
+
             Pembayaran::create([
                 'transaksi_id' => $transaksi->id,
                 'metode' => 'Midtrans (Redirect)',
@@ -630,7 +642,6 @@ class PosController extends Controller
                 'referensi' => 'Local-Success'
             ]);
         }
-
         return redirect()->route('pos.index')->with('toast_success', 'Pembayaran Berhasil!');
     }
 
@@ -723,5 +734,30 @@ class PosController extends Controller
                 'referensi' => $ref
             ]);
         }
+    }
+
+    private function getCartResponse($transaksi, $message = '')
+    {
+        $transaksi->load('details.produk.kategori');
+        return response()->json([
+            'status' => 'success',
+            'message' => $message,
+            'data' => [
+                'total_format' => number_format($transaksi->total, 0, ',', '.'),
+                'cart_count' => $transaksi->details->sum('jumlah'),
+                'details' => $transaksi->details->map(function($item) {
+                    return [
+                        'id' => $item->id,
+                        'produk_id' => $item->produk_id,
+                        'nama_produk' => $item->produk->nama_produk,
+                        'kategori' => $item->produk->kategori->nama ?? '-',
+                        'stok_asli' => $item->produk->stok + $item->jumlah,
+                        'harga_satuan' => number_format($item->harga_satuan, 0, ',', '.'),
+                        'jumlah' => $item->jumlah,
+                        'subtotal' => number_format($item->subtotal, 0, ',', '.')
+                    ];
+                })
+            ]
+        ]);
     }
 }
