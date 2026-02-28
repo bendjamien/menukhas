@@ -642,7 +642,8 @@ class PosController extends Controller
                 'referensi' => 'Local-Success'
             ]);
         }
-        return redirect()->route('pos.index')->with('toast_success', 'Pembayaran Berhasil!');
+        return redirect()->route('transaksi.show', ['transaksi' => $transaksi->id, 'show_modal' => 'true'])
+                         ->with('toast_success', 'Pembayaran Berhasil!');
     }
 
     public function cancelPendingTransaction(Transaksi $transaksi)
