@@ -1,452 +1,311 @@
 <x-app-layout>
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        <div class="lg:col-span-2 space-y-6">
+    {{-- Main Container --}}
+    <div class="h-[calc(100vh-90px)] mt-4 mx-4 flex flex-col overflow-hidden bg-white border border-gray-200 rounded-2xl shadow-lg">
+        
+        <div class="flex flex-col md:flex-row flex-grow overflow-hidden">
             
-            <div class="bg-white p-4 rounded-lg shadow border border-gray-100">
-                <form action="{{ route('pos.index', ['transaksi' => $activeDraft->id]) }}" method="GET">
-                    <div class="relative flex gap-2">
+            <!-- LEFT SIDE: PRODUCTS -->
+            <div class="flex-grow flex flex-col min-w-0 border-r border-gray-100 bg-gray-50/30">
+                
+                <!-- Search Bar -->
+                <div class="p-4 bg-white border-b border-gray-100 shrink-0">
+                    <div class="flex gap-3">
                         <div class="relative flex-grow">
-                            <input type="text" name="search" id="pos-search-input" value="{{ $search ?? '' }}" 
-                                   placeholder="Cari produk berdasarkan nama atau barcode..." 
-                                   class="w-full border-gray-300 rounded-lg shadow-sm pl-10 focus:border-sky-500 focus:ring-sky-500"
-                                   autofocus
-                                   autocomplete="off">
-                            <span class="absolute left-3 top-2.5 text-gray-400">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                            </span>
-                            @if($search)
-                                <a href="{{ route('pos.index', ['transaksi' => $activeDraft->id]) }}" class="absolute right-3 top-2.5 text-gray-500 hover:text-red-500" title="Reset Pencarian">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                </a>
-                            @endif
-                        </div>
-                        <button type="button" x-data="" x-on:click.prevent="$dispatch('open-modal', 'scan-barcode-modal'); startBarcodeScanner()"
-                                class="bg-gray-800 hover:bg-gray-900 text-white px-4 rounded-lg shadow-sm transition flex items-center gap-2" title="Scan Barcode">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                            <span class="hidden md:inline font-bold">Scan</span>
-                        </button>
-                    </div>
-                </form>
-            </div>
-
-            <div class="bg-white rounded-lg shadow overflow-hidden border border-gray-100">
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-3 p-3 h-[65vh] overflow-y-auto custom-scrollbar content-start">
-                    @forelse ($produks as $produk)
-                        @php
-                            $qtyInCart = $activeDraft->details->where('produk_id', $produk->id)->sum('jumlah') ?? 0;
-                            $displayStock = $produk->stok - $qtyInCart;
-                        @endphp
-                        <div x-data="{ qty: 1, currentStock: {{ $displayStock }} }" 
-                             class="h-full product-card" 
-                             data-produk-id="{{ $produk->id }}" 
-                             data-stok-asli="{{ $produk->stok }}"
-                             x-on:stock-updated-{{ $produk->id }}.window="currentStock = $event.detail.available">
-                            <form @submit.prevent="addItemAJAX($el)" class="h-full flex flex-col bg-white border border-gray-200 rounded-xl hover:shadow-lg transition-all duration-300 group overflow-hidden">
-                                @csrf
-                                <input type="hidden" name="produk_id" value="{{ $produk->id }}">
-                                <input type="hidden" name="transaksi_id" value="{{ $activeDraft->id }}">
-                                <input type="hidden" name="qty" x-model="qty">
-                                
-                                <!-- Product Image / Placeholder -->
-                                <div class="h-24 w-full bg-gray-50 flex items-center justify-center relative group-hover:bg-sky-50 transition-colors shrink-0">
-                                    <svg class="w-8 h-8 text-gray-300 group-hover:text-sky-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                                    <span class="absolute top-2 right-2 text-[9px] font-bold text-gray-500 bg-white/90 px-2 py-0.5 rounded-full shadow-sm border border-gray-100">
-                                        {{ $produk->kategori->nama ?? 'Umum' }}
-                                    </span>
-                                </div>
-                                
-                                <!-- Body -->
-                                <div class="p-3 flex flex-col justify-between flex-grow">
-                                    <div class="mb-3">
-                                        <h3 class="text-sm font-bold text-gray-800 leading-tight line-clamp-2 mb-1 group-hover:text-sky-600 transition-colors" title="{{ $produk->nama_produk }}">
-                                            {{ $produk->nama_produk }}
-                                        </h3>
-                                        <div class="flex justify-between items-center">
-                                            <p class="text-[10px] text-gray-400 font-medium">Stok: <span id="product-stock-count-{{ $produk->id }}" x-text="currentStock"></span></p>
-                                            <span class="text-sm font-black text-gray-900">
-                                                Rp {{ number_format($produk->harga_jual, 0, ',', '.') }}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Qty Control & Add Button -->
-                                    <div class="flex items-center justify-between gap-2 mt-auto pt-3 border-t border-dashed border-gray-100">
-                                        <!-- Stepper -->
-                                        <div class="flex items-center bg-gray-100 rounded-lg p-0.5 w-24 shadow-inner">
-                                            <button type="button" @click="if(qty > 1) qty--" class="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-white rounded-md transition-all font-bold disabled:opacity-50">
-                                                -
-                                            </button>
-                                            <input type="number" x-model="qty" min="1" :max="currentStock" class="w-full text-center bg-transparent border-none p-0 text-xs font-bold text-gray-800 focus:ring-0 appearance-none h-7">
-                                            <button type="button" @click="if(qty < currentStock) qty++" class="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-green-600 hover:bg-white rounded-md transition-all font-bold" :disabled="qty >= currentStock">
-                                                +
-                                            </button>
-                                        </div>
-
-                                        <!-- Add Button -->
-                                        <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white p-2 rounded-lg shadow-md shadow-sky-200 transition-all active:scale-95 flex-shrink-0 disabled:opacity-50 disabled:grayscale" title="Tambah ke Keranjang" :disabled="currentStock <= 0">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                        </button>
-                                    </div>
-                                </div>
+                            <form action="{{ route('pos.index', ['transaksi' => $activeDraft->id]) }}" method="GET" class="relative">
+                                <input type="text" name="search" id="pos-search-input" value="{{ $search ?? '' }}" 
+                                       placeholder="Cari menu atau scan barcode..." 
+                                       class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-10 py-3 focus:ring-2 focus:ring-sky-500 focus:bg-white font-medium text-sm transition-all"
+                                       autofocus autocomplete="off">
+                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                </span>
+                                @if($search)
+                                    <a href="{{ route('pos.index', ['transaksi' => $activeDraft->id]) }}" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                    </a>
+                                @endif
                             </form>
                         </div>
-                    @empty
-                        <div class="col-span-full flex flex-col items-center justify-center text-gray-400 py-20">
-                            <svg class="w-16 h-16 mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            <p>Produk tidak ditemukan.</p>
-                        </div>
-                    @endforelse
+                        <button type="button" x-data="" x-on:click.prevent="$dispatch('open-modal', 'scan-barcode-modal'); startBarcodeScanner()"
+                                class="bg-gray-800 hover:bg-black text-white px-6 rounded-xl shadow-md transition-all flex items-center gap-2 shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                            <span class="font-bold text-xs uppercase tracking-widest">Scan</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Product Grid: Proporsional & Rapi -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar p-4 bg-gray-50/20">
+                    <div class="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                        @forelse ($produks as $produk)
+                            @php
+                                $qtyInCart = $activeDraft->details->where('produk_id', $produk->id)->sum('jumlah') ?? 0;
+                                $displayStock = $produk->stok - $qtyInCart;
+                            @endphp
+                            <div x-data="{ qty: 1, currentStock: {{ $displayStock }} }" 
+                                 class="product-card" 
+                                 data-produk-id="{{ $produk->id }}" 
+                                 data-stok-asli="{{ $produk->stok }}"
+                                 x-on:stock-updated-{{ $produk->id }}.window="currentStock = $event.detail.available">
+                                
+                                <div class="bg-white rounded-2xl border border-gray-200 hover:border-sky-400 hover:shadow-lg transition-all duration-300 flex flex-col h-full overflow-hidden shadow-sm group relative">
+                                    
+                                    <!-- Image Area (Fixed Ratio) -->
+                                    <div @click="if(currentStock > 0) addItemAJAX($refs.addForm)" class="aspect-square bg-gray-50 flex items-center justify-center cursor-pointer relative overflow-hidden border-b border-gray-100">
+                                        @if($produk->image)
+                                            <img src="{{ asset('storage/' . $produk->image) }}" alt="{{ $produk->nama_produk }}" class="w-full h-full object-cover group-hover:scale-110 transition-all duration-500">
+                                        @else
+                                            <div class="flex flex-col items-center justify-center text-gray-200 group-hover:text-sky-200 transition-colors">
+                                                <svg class="w-12 h-12 group-hover:scale-110 transition-all duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                                <span class="text-[8px] font-bold mt-1 uppercase tracking-tighter">No Photo</span>
+                                            </div>
+                                        @endif
+                                        
+                                        <!-- Stock Floating Label -->
+                                        <div class="absolute top-2 left-2">
+                                            <span :class="currentStock <= 5 ? 'bg-rose-500' : 'bg-sky-600'" 
+                                                  class="text-[8px] font-black text-white px-2 py-0.5 rounded-full shadow-lg" 
+                                                  x-text="'STOK: ' + currentStock"></span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Content Area (Clean & Proportional) -->
+                                    <div class="p-3 flex flex-col flex-grow">
+                                        <h3 class="text-xs font-black text-gray-800 line-clamp-1 mb-1 group-hover:text-sky-600 transition-colors" title="{{ $produk->nama_produk }}">
+                                            {{ $produk->nama_produk }}
+                                        </h3>
+                                        <div class="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-3">{{ $produk->kategori->nama ?? 'Umum' }}</div>
+                                        
+                                        <div class="mt-auto flex items-center justify-between gap-2 border-t border-gray-50 pt-3">
+                                            <div class="text-sm font-black text-gray-900 tracking-tight leading-none">
+                                                <span class="text-sky-600 text-[10px] font-bold">Rp</span>{{ number_format($produk->harga_jual, 0, ',', '.') }}
+                                            </div>
+                                            
+                                            <form x-ref="addForm" @submit.prevent="addItemAJAX($el)" class="flex items-center gap-1">
+                                                @csrf
+                                                <input type="hidden" name="produk_id" value="{{ $produk->id }}">
+                                                <input type="hidden" name="transaksi_id" value="{{ $activeDraft->id }}">
+                                                <input type="hidden" name="qty" x-model="qty" value="1">
+                                                
+                                                <button type="submit" :disabled="currentStock <= 0" 
+                                                        class="bg-sky-600 hover:bg-sky-700 text-white w-8 h-8 rounded-lg shadow-lg shadow-sky-100 transition-all active:scale-90 flex items-center justify-center disabled:opacity-30 disabled:grayscale">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        @empty
+                            <div class="col-span-full py-20 text-center text-gray-400 font-bold">Produk tidak ditemukan.</div>
+                        @endforelse
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="lg:col-span-1">
-            <div class="bg-white p-5 rounded-lg shadow sticky top-24 h-[calc(100vh-115px)] flex flex-col border border-gray-100 overflow-y-auto custom-scrollbar">
+            <!-- RIGHT SIDE: CART (SIDEBAR) -->
+            <div class="w-full md:w-[360px] flex flex-col bg-white shrink-0 border-l border-gray-100">
                 
-                <!-- HEADER: Info Transaksi -->
-                <div class="flex justify-between items-center border-b pb-3 mb-3 shrink-0">
-                    <div>
-                        <h2 class="text-lg font-bold text-gray-800 tracking-tight">Keranjang</h2>
-                        <p class="text-[10px] text-gray-400">Member: <span id="current-customer-name" class="font-bold text-sky-600">{{ $activeDraft->pelanggan->nama ?? 'Umum' }}</span></p>
+                <!-- Sidebar Header -->
+                <div class="p-5 border-b border-gray-100 bg-white">
+                    <div class="flex justify-between items-center mb-2">
+                        <h2 class="text-lg font-black text-gray-800 tracking-tight uppercase">Checkout</h2>
+                        <span class="text-xs font-bold bg-sky-50 text-sky-600 px-3 py-1 rounded-full border border-sky-100">#{{ $activeDraft->id }}</span>
                     </div>
-                    <span class="text-xs font-mono font-bold text-sky-600 bg-sky-50 px-2 py-1 rounded">#{{ $activeDraft->id }}</span>
-                </div>
-
-                <!-- INFO: Pending Drafts -->
-                @if($pendingDrafts->isNotEmpty())
-                    <div x-data="{ open: false }" class="relative mb-3 shrink-0">
-                        <button @click="open = !open" class="w-full flex justify-between items-center px-3 py-2 bg-yellow-50 text-yellow-700 text-[10px] font-bold rounded-lg hover:bg-yellow-100 border border-yellow-200">
-                            <span>⚠️ {{ $pendingDrafts->count() }} Draft Ditahan</span>
-                            <svg :class="{'rotate-180': open}" class="w-3 h-3 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-                        </button>
-                        <div x-show="open" @click.away="open = false" class="absolute z-30 mt-1 w-full bg-white rounded-lg shadow-xl border border-gray-100 max-h-40 overflow-y-auto">
-                            @foreach ($pendingDrafts as $draft)
-                                <a href="{{ route('pos.index', ['transaksi' => $draft->id]) }}" class="block px-3 py-2 hover:bg-gray-50 border-b last:border-b-0 transition">
-                                    <div class="flex justify-between">
-                                        <span class="font-bold text-[10px] text-gray-800">{{ $draft->pelanggan->nama ?? 'Umum' }}</span>
-                                        <span class="text-[9px] text-gray-400">{{ \Carbon\Carbon::parse($draft->tanggal)->format('H:i') }}</span>
-                                    </div>
-                                </a>
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
-
-                <!-- BODY: Keranjang Summary (Shrinkable) -->
-                <div class="flex-1 min-h-0 flex flex-col justify-center items-center p-4 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 mb-4">
-                    <div class="w-14 h-14 bg-white rounded-full flex items-center justify-center relative mb-2 shadow-sm border border-slate-100 shrink-0">
-                        <svg class="w-7 h-7 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
-                        
-                        <div id="cart-count-badge" 
-                             class="absolute -top-1 -right-1 w-7 h-7 bg-sky-600 rounded-full flex items-center justify-center text-white font-black text-[10px] shadow-lg border-2 border-white animate-bounce {{ $activeDraft->details->sum('jumlah') > 0 ? '' : 'hidden' }}">
-                            {{ $activeDraft->details->sum('jumlah') }}
-                        </div>
-                    </div>
-                    <div class="text-center shrink-0">
-                        <h3 class="text-sm font-bold text-slate-700 leading-tight">Pesanan Tersimpan</h3>
-                        <p class="text-[10px] text-slate-400">Gunakan tombol cek detail.</p>
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 rounded-full bg-emerald-500 shadow-sm animate-pulse"></div>
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                            Member: <span id="current-customer-name" class="text-sky-600 font-black">{{ $activeDraft->pelanggan->nama ?? 'Umum' }}</span>
+                        </p>
                     </div>
                 </div>
 
-                <!-- FOOTER: Totals & Actions (Fixed at Bottom) -->
-                <div class="border-t pt-3 space-y-3 shrink-0">
-                    <div class="space-y-0.5">
-                        <div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                            <span>Subtotal</span>
-                            <span id="sidebar-cart-subtotal">Rp {{ number_format($activeDraft->total, 0, ',', '.') }}</span>
+                <!-- Cart Body Placeholder -->
+                <div class="flex-1 flex flex-col items-center justify-center p-8 bg-gray-50/20 relative">
+                    <div class="text-center">
+                        <div class="relative inline-block mb-4">
+                            <div class="w-16 h-16 bg-sky-50 rounded-2xl flex items-center justify-center text-sky-200">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path></svg>
+                            </div>
+                            <div id="cart-count-badge" class="absolute -top-2 -right-2 w-8 h-8 bg-sky-600 text-white rounded-lg flex items-center justify-center font-black text-sm shadow-lg {{ $activeDraft->details->sum('jumlah') > 0 ? '' : 'hidden' }}">
+                                {{ $activeDraft->details->sum('jumlah') }}
+                            </div>
                         </div>
-                        <div class="flex justify-between text-2xl font-black text-sky-600 tracking-tighter">
-                            <span>Total</span>
-                            <span id="sidebar-cart-total">Rp {{ number_format($activeDraft->total, 0, ',', '.') }}</span>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-1 gap-2.5">
                         <button type="button" x-data="" x-on:click.prevent="$dispatch('open-modal', 'full-cart-modal')"
-                                class="w-full flex items-center justify-center bg-white text-slate-600 hover:bg-slate-50 font-bold py-3 px-4 rounded-xl border-2 border-slate-100 hover:border-sky-200 transition-all text-sm gap-2">
+                                class="mt-4 w-full py-3 bg-white border-2 border-gray-100 hover:border-sky-300 text-gray-600 hover:text-sky-600 font-bold text-[10px] uppercase tracking-widest rounded-xl transition-all shadow-sm flex items-center justify-center gap-2">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
-                            Cek Detail Pesanan
+                            Detail Belanja
                         </button>
+                    </div>
+                </div>
 
+                <!-- Sidebar Footer -->
+                <div class="p-6 bg-white border-t border-gray-100 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.05)]">
+                    <div class="mb-6 space-y-1">
+                        <div class="flex justify-between items-end">
+                            <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Subtotal</span>
+                            <span id="sidebar-cart-subtotal" class="text-sm font-bold text-gray-600 font-mono">Rp {{ number_format($activeDraft->total, 0, ',', '.') }}</span>
+                        </div>
+                        <div class="flex justify-between items-end pt-1 border-t border-dashed border-gray-100 mt-2">
+                            <span class="text-xs font-black text-gray-800 uppercase tracking-tight">Total Akhir</span>
+                            <span id="sidebar-cart-total" class="text-3xl font-black text-sky-600 tracking-tighter leading-none font-mono">Rp {{ number_format($activeDraft->total, 0, ',', '.') }}</span>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
                         <a href="{{ route('pos.checkout.show', $activeDraft) }}"
-                           class="w-full flex items-center justify-center bg-sky-600 hover:bg-sky-700 text-white font-bold py-4 px-4 rounded-xl shadow-lg shadow-sky-500/20 transition-all transform hover:-translate-y-0.5 {{ $activeDraft->details->isEmpty() ? 'opacity-50 pointer-events-none grayscale' : '' }}">
-                            <span class="mr-2 text-lg">BAYAR SEKARANG</span>
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                           class="w-full bg-sky-600 hover:bg-sky-700 text-white font-black py-4 rounded-2xl shadow-xl shadow-sky-500/20 transition-all flex items-center justify-center gap-3 active:scale-95 {{ $activeDraft->details->isEmpty() ? 'opacity-50 pointer-events-none grayscale' : '' }}">
+                            <span class="text-lg uppercase tracking-wider">BAYAR SEKARANG</span>
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                         </a>
                         
-                        <div class="grid grid-cols-2 gap-3 mt-1 pb-2">
-                            <a href="{{ route('pos.new_draft') }}"
-                               class="flex items-center justify-center bg-yellow-50 text-yellow-700 hover:bg-yellow-100 font-bold py-3.5 px-4 rounded-xl border border-yellow-200 transition-all text-sm">
+                        <div class="grid grid-cols-2 gap-3">
+                            <a href="{{ route('pos.new_draft') }}" class="flex items-center justify-center bg-yellow-50 text-yellow-700 hover:bg-yellow-100 font-bold py-3.5 rounded-xl text-[10px] uppercase tracking-widest border border-yellow-200 transition-all">
                                 Simpan
                             </a>
-                            <button type="button"
-                                    x-data=""
-                                    x-on:click.prevent="$dispatch('open-modal', 'confirm-draft-cancel-{{ $activeDraft->id }}')"
-                                    class="flex items-center justify-center bg-red-50 text-red-700 hover:bg-red-100 font-bold py-3.5 px-4 rounded-xl border border-red-200 transition-all text-sm">
-                                Hapus
+                            <button @click="$dispatch('open-modal', 'confirm-draft-cancel-{{ $activeDraft->id }}')" class="flex items-center justify-center bg-red-50 text-red-700 hover:bg-red-100 font-bold py-3.5 rounded-xl text-[10px] uppercase tracking-widest border border-red-200 transition-all">
+                                Batal
                             </button>
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
 
+        <!-- MODALS & SCRIPTS (REMAINS SAME) -->
         <x-modal :name="'confirm-draft-cancel-'.$activeDraft->id" focusable>
-            <form method="post" action="{{ route('pos.cancel_draft') }}" class="p-6">
+            <form method="post" action="{{ route('pos.cancel_draft') }}" class="p-8 text-center">
                 @csrf
                 <input type="hidden" name="transaksi_id" value="{{ $activeDraft->id }}">
-                <h2 class="text-lg font-medium text-gray-900">Hapus Transaksi Ini?</h2>
-                <p class="mt-1 text-sm text-gray-600">Item di keranjang akan dihapus permanen.</p>
-                <div class="mt-6 flex justify-end space-x-3">
-                    <x-secondary-button x-on:click="$dispatch('close')">Batal</x-secondary-button>
-                    <x-danger-button>Ya, Hapus</x-danger-button>
+                <div class="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-red-50">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </div>
+                <h2 class="text-2xl font-black text-gray-900 uppercase tracking-tight text-center">Hapus Pesanan?</h2>
+                <div class="mt-10 flex justify-center gap-4">
+                    <button type="button" x-on:click="$dispatch('close')" class="flex-1 py-4 bg-gray-100 text-gray-700 font-black rounded-2xl uppercase tracking-widest text-xs transition-colors">Tutup</button>
+                    <button type="submit" class="flex-1 py-4 bg-red-600 text-white font-black rounded-2xl uppercase tracking-widest text-xs transition-all shadow-xl shadow-red-100">Ya, Hapus</button>
                 </div>
             </form>
         </x-modal>
 
-    </div>
-
-    <!-- Modal Cek Detail Pesanan (Full View) -->
-    <x-modal name="full-cart-modal" focusable maxWidth="4xl">
-        <div class="p-6 bg-white rounded-2xl h-[80vh] flex flex-col" 
-             x-data="{ 
-                items: {{ $activeDraft->details->map(function($item) {
-                    return [
-                        'id' => $item->id,
-                        'produk_id' => $item->produk_id,
-                        'nama_produk' => $item->produk->nama_produk,
-                        'kategori' => $item->produk->kategori->nama ?? '-',
-                        'stok_asli' => $item->produk->stok + $item->jumlah,
-                        'harga_satuan' => number_format($item->harga_satuan, 0, ',', '.'),
-                        'jumlah' => $item->jumlah,
-                        'subtotal' => number_format($item->subtotal, 0, ',', '.')
-                    ];
-                })->toJson() }},
-                total: '{{ number_format($activeDraft->total, 0, ',', '.') }}',
-                updateData(newData) {
-                    this.items = newData.details;
-                    this.total = newData.total_format;
-                }
-             }"
-             x-on:cart-updated.window="updateData($event.detail)">
-            
-            <div class="flex justify-between items-center mb-6 border-b pb-4">
-                <div>
-                    <h2 class="text-2xl font-bold text-gray-800">Detail Pesanan</h2>
-                    <p class="text-sm text-gray-500">No. Transaksi: <span class="font-mono font-bold text-sky-600">#{{ $activeDraft->id }}</span></p>
+        <x-modal name="full-cart-modal" focusable maxWidth="4xl">
+            <div class="p-8 bg-white rounded-3xl h-[85vh] flex flex-col" 
+                 x-data="{ 
+                    items: {{ $activeDraft->details->map(function($item) {
+                        return [
+                            'id' => $item->id,
+                            'produk_id' => $item->produk_id,
+                            'nama_produk' => $item->produk->nama_produk,
+                            'kategori' => $item->produk->kategori->nama ?? '-',
+                            'stok_asli' => $item->produk->stok + $item->jumlah,
+                            'harga_satuan' => number_format($item->harga_satuan, 0, ',', '.'),
+                            'jumlah' => $item->jumlah,
+                            'subtotal' => number_format($item->subtotal, 0, ',', '.')
+                        ];
+                    })->toJson() }},
+                    total: '{{ number_format($activeDraft->total, 0, ',', '.') }}',
+                    updateData(newData) { this.items = newData.details; this.total = newData.total_format; }
+                 }"
+                 x-on:cart-updated.window="updateData($event.detail)">
+                
+                <div class="flex justify-between items-center mb-8 border-b pb-6 shrink-0">
+                    <div>
+                        <h2 class="text-2xl font-black text-gray-800 uppercase tracking-tight italic">Rincian Belanja</h2>
+                        <p class="text-xs font-bold text-gray-400 mt-1 uppercase tracking-widest">ORDER #{{ $activeDraft->id }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Pembayaran</p>
+                        <p class="text-4xl font-black text-sky-600 tracking-tighter" x-text="'Rp ' + total"></p>
+                    </div>
                 </div>
-                <div class="text-right">
-                    <p class="text-sm text-gray-500">Total Sementara</p>
-                    <p class="text-2xl font-extrabold text-sky-600" x-text="'Rp ' + total"></p>
-                </div>
-            </div>
 
-            <div class="flex-1 overflow-y-auto custom-scrollbar -mx-2 px-2">
-                <table class="w-full text-left border-collapse">
-                    <thead class="bg-gray-50 sticky top-0 z-10">
-                        <tr>
-                            <th class="py-3 px-4 font-semibold text-gray-600 text-sm rounded-l-lg">Produk</th>
-                            <th class="py-3 px-4 font-semibold text-gray-600 text-sm text-right">Harga</th>
-                            <th class="py-3 px-4 font-semibold text-gray-600 text-sm text-center">Qty</th>
-                            <th class="py-3 px-4 font-semibold text-gray-600 text-sm text-right">Subtotal</th>
-                            <th class="py-3 px-4 font-semibold text-gray-600 text-sm text-center rounded-r-lg">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-100">
-                        <template x-for="item in items" :key="item.id">
-                            <tr class="hover:bg-sky-50/50 transition-colors group">
-                                <td class="py-4 px-4">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-10 h-10 rounded-lg bg-sky-100 flex items-center justify-center text-sky-600 font-bold text-xs shrink-0" x-text="item.nama_produk.substring(0, 2)"></div>
-                                        <div>
-                                            <div class="font-bold text-gray-800" x-text="item.nama_produk"></div>
-                                            <div class="text-xs text-gray-500" x-text="item.kategori + ' | Stok: ' + item.stok_asli"></div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="py-4 px-4 text-right font-mono text-gray-600" x-text="'Rp ' + item.harga_satuan"></td>
-                                <td class="py-4 px-4 text-center">
-                                    <div class="inline-flex items-center bg-white border border-gray-200 rounded-lg shadow-sm">
-                                        <button type="button" 
-                                                @click="if(item.jumlah > 1) { item.jumlah--; updateItemQty(item.id, item.jumlah); }" 
-                                                class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-l-lg transition-colors"
-                                                :disabled="item.jumlah <= 1">
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M20 12H4"></path></svg>
-                                        </button>
-                                        
-                                        <input type="text" x-model="item.jumlah" readonly 
-                                               class="w-10 h-8 text-center border-none p-0 text-sm font-bold text-gray-800 focus:ring-0 cursor-default">
-                                        
-                                        <button type="button" 
-                                                @click="if(item.jumlah < item.stok_asli) { item.jumlah++; updateItemQty(item.id, item.jumlah); } else { Toastify({ text: 'Stok habis!', duration: 2000, style: { background: '#ef4444' } }).showToast(); }" 
-                                                class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-green-600 hover:bg-green-50 rounded-r-lg transition-colors">
-                                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg>
-                                        </button>
-                                    </div>
-                                </td>
-                                <td class="py-4 px-4 text-right font-bold text-gray-800 font-mono" x-text="'Rp ' + item.subtotal"></td>
-                                <td class="py-4 px-4 text-center">
-                                    <button type="button" @click="removeItemAJAX(item.id)" 
-                                            class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Hapus Item">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                    </button>
-                                </td>
+                <div class="flex-1 overflow-y-auto custom-scrollbar -mx-2 px-2">
+                    <table class="w-full text-left">
+                        <thead class="bg-gray-50/80 sticky top-0 z-10 border-b border-gray-100">
+                            <tr>
+                                <th class="py-4 px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Menu</th>
+                                <th class="py-4 px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Harga</th>
+                                <th class="py-3 px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Qty</th>
+                                <th class="py-4 px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Subtotal</th>
+                                <th class="py-4 px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Aksi</th>
                             </tr>
-                        </template>
-                        <tr x-show="items.length === 0">
-                            <td colspan="5" class="py-12 text-center text-gray-400">
-                                <svg class="w-16 h-16 mx-auto mb-3 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                                <p class="text-lg font-medium">Keranjang masih kosong</p>
-                                <p class="text-sm">Scan barcode atau pilih produk untuk menambahkan.</p>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="mt-6 pt-6 border-t border-gray-200 flex justify-end gap-3">
-                <button type="button" x-on:click="$dispatch('close')" 
-                        class="px-6 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors">
-                    Tutup & Lanjut Belanja
-                </button>
-                <a href="{{ route('pos.checkout.show', $activeDraft) }}" 
-                   class="px-6 py-2.5 bg-sky-600 text-white font-bold rounded-xl shadow-lg shadow-sky-200 hover:bg-sky-700 transition-transform transform hover:-translate-y-0.5"
-                   :class="items.length === 0 ? 'hidden' : ''">
-                    Lanjut ke Pembayaran &rarr;
-                </a>
-            </div>
-        </div>
-    </x-modal>
-
-    <!-- Modal Tambah Member Baru -->
-    <x-modal name="add-member-modal" focusable>
-        <form method="post" action="{{ route('pos.store_member') }}" class="p-6">
-            @csrf
-            <input type="hidden" name="transaksi_id" value="{{ $activeDraft->id }}">
-            
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold text-gray-900">
-                    Daftar Member Baru
-                </h2>
-                <button type="button" x-on:click="$dispatch('close')" class="text-gray-400 hover:text-gray-500">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-            </div>
-
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Nama Lengkap <span class="text-red-500">*</span></label>
-                    <input type="text" name="nama" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <template x-for="item in items" :key="item.id">
+                                <tr class="hover:bg-sky-50/30 transition-colors">
+                                    <td class="py-5 px-4">
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-12 h-12 rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600 font-black text-xs shrink-0" x-text="item.nama_produk.substring(0, 2).toUpperCase()"></div>
+                                            <div>
+                                                <div class="font-black text-gray-800 text-base leading-tight" x-text="item.nama_produk"></div>
+                                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1" x-text="item.kategori"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="py-5 px-4 text-right font-bold text-gray-600" x-text="'Rp ' + item.harga_satuan"></td>
+                                    <td class="py-5 px-4 text-center">
+                                        <div class="inline-flex items-center bg-gray-100 rounded-2xl p-1 border border-gray-200/50 shadow-inner">
+                                            <button type="button" @click="if(item.jumlah > 1) { item.jumlah--; updateItemQty(item.id, item.jumlah); }" class="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-red-500 hover:bg-white rounded-xl transition-all font-black">-</button>
+                                            <input type="text" x-model="item.jumlah" readonly class="w-10 h-9 text-center border-none p-0 text-base font-black text-gray-800 focus:ring-0 bg-transparent">
+                                            <button type="button" @click="if(item.jumlah < item.stok_asli) { item.jumlah++; updateItemQty(item.id, item.jumlah); }" class="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-green-600 hover:bg-white rounded-xl transition-all font-black">+</button>
+                                        </div>
+                                    </td>
+                                    <td class="py-5 px-4 text-right font-black text-gray-900 text-base leading-none" x-text="'Rp ' + item.subtotal"></td>
+                                    <td class="py-5 px-4 text-center">
+                                        <button type="button" @click="removeItemAJAX(item.id)" class="p-2 text-gray-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all shadow-sm"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
                 </div>
 
-                <div>
-                    <label class="block text-sm font-medium text-gray-700">Nomor HP / WhatsApp <span class="text-red-500">*</span></label>
-                    <input type="text" name="no_hp" required placeholder="08xxxxxxxxxx" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    <p class="text-xs text-gray-500 mt-1">Digunakan untuk identifikasi member saat checkout.</p>
+                <div class="mt-8 pt-8 border-t border-gray-100 flex justify-end gap-4 shrink-0">
+                    <button type="button" x-on:click="$dispatch('close')" class="px-10 py-4 bg-gray-100 text-gray-500 font-black rounded-2xl uppercase tracking-widest text-xs hover:bg-gray-200 transition-colors">Tutup</button>
+                    <a href="{{ route('pos.checkout.show', $activeDraft) }}" class="px-10 py-4 bg-sky-600 text-white font-black rounded-2xl shadow-xl shadow-sky-100 hover:bg-sky-700 uppercase tracking-widest text-xs transition-all active:scale-95" :class="items.length === 0 ? 'hidden' : ''">Lanjutkan &rarr;</a>
                 </div>
+            </div>
+        </x-modal>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Email (Opsional)</label>
-                        <input type="email" name="email" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700">Alamat (Opsional)</label>
-                        <input type="text" name="alamat" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+        <x-modal name="scan-barcode-modal" focusable maxWidth="md">
+            <div class="p-8" x-data="{ scanMode: 'manual' }" x-init="$watch('scanMode', val => { if(val === 'manual') setTimeout(() => $refs.manualInput.focus(), 100); else if(val === 'camera') startCameraScan(); else stopBarcodeScanner(); })">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-2xl font-black text-gray-800 uppercase tracking-tight italic">Scan Barcode</h2>
+                    <button type="button" onclick="stopBarcodeScanner(); window.dispatchEvent(new CustomEvent('close-modal', { detail: 'scan-barcode-modal' }));" class="text-gray-400 hover:text-gray-600"><svg class="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+                </div>
+                <div class="flex p-1.5 bg-gray-100 rounded-2xl mb-8">
+                    <button @click="scanMode = 'manual'; stopBarcodeScanner();" :class="scanMode === 'manual' ? 'bg-white text-sky-600 shadow-sm' : 'text-gray-500'" class="flex-1 py-3.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all">Manual Scanner</button>
+                    <button @click="scanMode = 'camera'" :class="scanMode === 'camera' ? 'bg-white text-sky-600 shadow-sm' : 'text-gray-500'" class="flex-1 py-3.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all">Kamera HP</button>
+                </div>
+                <div x-show="scanMode === 'manual'" class="bg-sky-50 p-10 rounded-[40px] border border-sky-100 text-center shadow-inner">
+                    <input type="text" id="manual-barcode-input" x-ref="manualInput" class="w-full text-center border-none bg-white rounded-3xl py-6 px-6 focus:ring-4 focus:ring-sky-500/20 font-black text-4xl tracking-widest shadow-xl" placeholder="SCAN..." onkeydown="if(event.key === 'Enter') { event.preventDefault(); processQuickScan(this.value); this.value = ''; }">
+                    <p class="mt-6 text-sky-600 font-bold text-[10px] uppercase tracking-widest animate-pulse">Menunggu Sinyal Barcode...</p>
+                </div>
+                <div x-show="scanMode === 'camera'" style="display: none;">
+                    <div class="bg-black rounded-[40px] overflow-hidden relative h-[350px] shadow-2xl border-8 border-gray-900">
+                        <div id="reader-barcode" class="w-full h-full object-cover"></div>
+                        <div id="camera-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-600 font-bold text-xs uppercase tracking-widest italic">Menyiapkan lensa kamera...</div>
                     </div>
                 </div>
             </div>
-
-            <div class="mt-6 flex justify-end gap-3">
-                <x-secondary-button x-on:click="$dispatch('close')">Batal</x-secondary-button>
-                <button type="submit" class="bg-sky-600 hover:bg-sky-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition">
-                    Simpan Member
-                </button>
-            </div>
-        </form>
-    </x-modal>
-
-    <!-- Modal Scan Barcode -->
-    <x-modal name="scan-barcode-modal" focusable maxWidth="md">
-        <div class="p-5" x-data="{ scanMode: 'manual' }" x-init="$watch('scanMode', val => { if(val === 'manual') setTimeout(() => $refs.manualInput.focus(), 100); else if(val === 'camera') startCameraScan(); else stopBarcodeScanner(); })">
-            
-            <div class="flex justify-between items-center mb-4 border-b pb-3">
-                <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
-                    <svg class="w-6 h-6 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                    Scan Produk
-                </h2>
-                <button type="button" onclick="stopBarcodeScanner(); window.dispatchEvent(new CustomEvent('close-modal', { detail: 'scan-barcode-modal' }));" class="text-gray-400 hover:text-gray-600">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                </button>
-            </div>
-            
-            <div class="flex p-1 bg-gray-100 rounded-xl mb-4">
-                <button @click="scanMode = 'manual'; stopBarcodeScanner();" 
-                        :class="scanMode === 'manual' ? 'bg-white text-sky-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
-                        class="flex-1 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2">
-                    Input / Scanner
-                </button>
-                <button @click="scanMode = 'camera'" 
-                        :class="scanMode === 'camera' ? 'bg-white text-sky-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'"
-                        class="flex-1 py-2 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2">
-                    Kamera HP
-                </button>
-            </div>
-
-            <div x-show="scanMode === 'manual'" class="space-y-4">
-                <div class="bg-sky-50 p-4 rounded-xl border border-sky-100 text-center">
-                    <label class="block text-xs font-bold text-sky-700 uppercase mb-2">Kode Barcode</label>
-                    <input type="text" id="manual-barcode-input" x-ref="manualInput"
-                           class="w-full text-center border-2 border-sky-300 rounded-lg py-3 px-4 focus:outline-none focus:ring-4 focus:ring-sky-200 font-mono text-xl font-bold placeholder-sky-300 transition-all bg-white"
-                           placeholder="Scan / Ketik..."
-                           onkeydown="if(event.key === 'Enter') { event.preventDefault(); processQuickScan(this.value); this.value = ''; }">
-                    <p class="text-[10px] text-sky-600 mt-2 font-medium">Tekan ENTER setelah input.</p>
-                </div>
-            </div>
-
-            <div x-show="scanMode === 'camera'" style="display: none;" class="space-y-4">
-                <div class="bg-black rounded-xl overflow-hidden relative h-[250px] border-2 border-gray-800 shadow-inner">
-                    <div id="reader-barcode" class="w-full h-full object-cover"></div>
-                    <div id="camera-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500">
-                        <svg class="w-10 h-10 mb-2 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22a2 2 0 001.664.89H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path></svg>
-                        <p class="text-xs">Menyiapkan kamera...</p>
-                    </div>
-                </div>
-                <button onclick="document.getElementById('barcode-file-input').click()" class="bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition w-full">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
-                    Upload Foto Barcode
-                </button>
-                <input type="file" id="barcode-file-input" accept="image/*" class="hidden">
-            </div>
-        </div>
-    </x-modal>
+        </x-modal>
+    </div>
 
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <script>
         let html5QrCode = null;
         const beepSound = new Audio("https://www.soundjay.com/buttons/sounds/button-3.mp3");
-
         function initScanner() { if (html5QrCode === null) html5QrCode = new Html5Qrcode("reader-barcode"); }
-        function startCameraScan() {
-            initScanner();
-            document.getElementById('camera-placeholder').style.display = 'none';
-            html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onBarcodeScanSuccess)
-            .catch(err => { document.getElementById('camera-placeholder').style.display = 'flex'; });
-        }
+        function startCameraScan() { initScanner(); document.getElementById('camera-placeholder').style.display = 'none'; html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, onBarcodeScanSuccess).catch(err => { document.getElementById('camera-placeholder').style.display = 'flex'; }); }
         function stopBarcodeScanner() { if (html5QrCode && html5QrCode.isScanning) html5QrCode.stop().then(() => html5QrCode.clear()); }
         function onBarcodeScanSuccess(decodedText) { processQuickScan(decodedText); if(html5QrCode && html5QrCode.isScanning) { html5QrCode.pause(); setTimeout(() => html5QrCode.resume(), 2000); } }
 
-        // --- REAL-TIME STOCK LOGIC ---
         function refreshAllProductStocks(cartDetails) {
-            // Reset all to original stock
             document.querySelectorAll('.product-card').forEach(card => {
                 const id = card.getAttribute('data-produk-id');
                 const asli = parseInt(card.getAttribute('data-stok-asli'));
                 window.dispatchEvent(new CustomEvent('stock-updated-' + id, { detail: { available: asli } }));
             });
-            // Subtract cart quantities
             cartDetails.forEach(item => {
                 const card = document.querySelector(`.product-card[data-produk-id="${item.produk_id}"]`);
                 if (card) {
@@ -459,34 +318,18 @@
         async function addItemAJAX(form) {
             const formData = new FormData(form);
             try {
-                let res = await fetch('{{ route("pos.add_item") }}', {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-                    body: formData
-                });
+                let res = await fetch('{{ route("pos.add_item") }}', { method: 'POST', headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }, body: formData });
                 let result = await res.json();
-                if (result.status === 'success') {
-                    beepSound.play().catch(() => {});
-                    Toastify({ text: result.message, duration: 2000, style: { background: "#10b981" } }).showToast();
-                    updateUIFromCart(result.data);
-                } else {
-                    Toastify({ text: result.message, duration: 3000, style: { background: "#ef4444" } }).showToast();
-                }
+                if (result.status === 'success') { beepSound.play().catch(() => {}); Toastify({ text: result.message, duration: 2000, style: { background: '#10b981' } }).showToast(); updateUIFromCart(result.data); }
+                else { Toastify({ text: result.message, duration: 3000, style: { background: '#ef4444' } }).showToast(); }
             } catch (err) { console.error(err); }
         }
 
         async function removeItemAJAX(detailId) {
             try {
-                let res = await fetch('{{ route("pos.remove_item") }}', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-                    body: JSON.stringify({ transaksi_detail_id: detailId })
-                });
+                let res = await fetch('{{ route("pos.remove_item") }}', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }, body: JSON.stringify({ transaksi_detail_id: detailId }) });
                 let result = await res.json();
-                if (result.status === 'success') {
-                    Toastify({ text: result.message, duration: 2000, style: { background: "#10b981" } }).showToast();
-                    updateUIFromCart(result.data);
-                }
+                if (result.status === 'success') { Toastify({ text: result.message, duration: 2000, style: { background: '#10b981' } }).showToast(); updateUIFromCart(result.data); }
             } catch (err) { console.error(err); }
         }
 
@@ -503,63 +346,47 @@
 
         function processQuickScan(barcode) {
             if(!barcode) return;
-            fetch('{{ route("pos.scan") }}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                body: JSON.stringify({ barcode: barcode, transaksi_id: '{{ $activeDraft->id }}' })
-            })
+            fetch('{{ route("pos.scan") }}', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ barcode: barcode, transaksi_id: '{{ $activeDraft->id }}' }) })
             .then(res => res.json())
             .then(result => {
-                if (result.status === 'success') {
-                    beepSound.play().catch(() => {});
-                    Toastify({ text: result.message, duration: 2000, style: { background: "#10b981" } }).showToast();
-                    updateUIFromCart(result.data);
+                if (result.status === 'success') { beepSound.play().catch(() => {}); Toastify({ text: result.message, duration: 2000, style: { background: '#10b981' } }).showToast(); updateUIFromCart(result.data);
                     if(result.data.pelanggan) document.getElementById('current-customer-name').innerText = result.data.pelanggan;
                     if (!document.body.classList.contains('overflow-y-hidden')) window.dispatchEvent(new CustomEvent('open-modal', { detail: 'full-cart-modal' }));
-                } else {
-                    Toastify({ text: result.message, duration: 3000, style: { background: "#ef4444" } }).showToast();
-                }
+                } else { Toastify({ text: result.message, duration: 3000, style: { background: '#ef4444' } }).showToast(); }
             });
         }
 
         function updateItemQty(detailId, newQty) {
             if(newQty < 1) return;
-            fetch('{{ route("pos.update_item") }}', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' },
-                body: JSON.stringify({ transaksi_detail_id: detailId, qty: newQty })
-            })
-            .then(res => res.json())
-            .then(result => {
-                if(result.status === 'success') updateUIFromCart(result.data);
-                else Toastify({ text: result.message, duration: 3000, style: { background: "#ef4444" } }).showToast();
-            });
+            fetch('{{ route("pos.update_item") }}', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}', 'Accept': 'application/json' }, body: JSON.stringify({ transaksi_detail_id: detailId, qty: newQty }) })
+            .then(res => res.json()).then(result => { if(result.status === 'success') updateUIFromCart(result.data); else Toastify({ text: result.message, duration: 3000, style: { background: '#ef4444' } }).showToast(); });
         }
 
-        // --- GLOBAL KEY LISTENERS ---
-        let barcodeBuffer = '';
-        let barcodeTimeout = null;
+        let bBuf = ''; let bTime = null;
         document.addEventListener('keydown', e => {
             if (e.key === 'F12' || (e.key.startsWith('F') && e.key !== 'F5')) e.preventDefault();
             if (e.ctrlKey && e.shiftKey && ['I', 'J', 'C', 'K', 'L'].includes(e.key.toUpperCase())) e.preventDefault();
-            if (e.key.length === 1) {
-                barcodeBuffer += e.key;
-                if (barcodeTimeout) clearTimeout(barcodeTimeout);
-                barcodeTimeout = setTimeout(() => { barcodeBuffer = ''; }, 150);
-            } else if (e.key === 'Enter' && barcodeBuffer.length >= 3) {
-                e.preventDefault(); e.stopImmediatePropagation();
-                processQuickScan(barcodeBuffer);
-                barcodeBuffer = '';
-            }
+            if (e.key.length === 1) { bBuf += e.key; if (bTime) clearTimeout(bTime); bTime = setTimeout(() => { bBuf = ''; }, 150); }
+            else if (e.key === 'Enter' && bBuf.length >= 3) { e.preventDefault(); e.stopImmediatePropagation(); processQuickScan(bBuf); bBuf = ''; }
         });
 
-        const searchInp = document.getElementById('pos-search-input');
-        if (searchInp) searchInp.addEventListener('keydown', e => { if (e.key === 'Enter') { const val = e.target.value.trim(); if (val.length >= 3) { e.preventDefault(); processQuickScan(val); e.target.value = ''; } } });
+        const sInp = document.getElementById('pos-search-input');
+        if (sInp) sInp.addEventListener('keydown', e => { if (e.key === 'Enter') { const v = e.target.value.trim(); if (v.length >= 3) { e.preventDefault(); processQuickScan(v); e.target.value = ''; } } });
 
         window.addEventListener('load', () => {
-            const params = new URLSearchParams(window.location.search);
-            const openM = params.get('open_modal');
-            if (openM) window.dispatchEvent(new CustomEvent('open-modal', { detail: openM }));
+            const p = new URLSearchParams(window.location.search);
+            const om = p.get('open_modal');
+            if (om) window.dispatchEvent(new CustomEvent('open-modal', { detail: om }));
+            @if($activeDraft->details->isNotEmpty())
+                refreshAllProductStocks({!! $activeDraft->details->map(fn($it)=>(['produk_id'=>$it->produk_id,'jumlah'=>$it->jumlah]))->toJson() !!});
+            @endif
         });
     </script>
+
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
 </x-app-layout>

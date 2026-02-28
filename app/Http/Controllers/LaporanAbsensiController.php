@@ -29,17 +29,37 @@ class LaporanAbsensiController extends Controller
         $laporan = $users->map(function($user) {
             $totalHadir = $user->absensis->count();
             $totalTelat = $user->absensis->where('status', 'Telat')->count();
-            $totalMenitTelat = $user->absensis->sum('keterlambatan');
+            $totalDetikTelat = $user->absensis->sum('keterlambatan');
             
             return [
                 'user' => $user,
                 'total_hadir' => $totalHadir,
                 'total_telat' => $totalTelat,
-                'total_menit_telat' => $totalMenitTelat,
+                'total_menit_telat' => $this->formatSeconds($totalDetikTelat), // Keep key but format value
             ];
         });
 
         return view('laporan.absensi', compact('laporan', 'bulan', 'tahun'));
+    }
+
+    private function formatSeconds($seconds)
+    {
+        $seconds = (int) $seconds;
+        if ($seconds === 0) return "0 detik";
+
+        // Pastikan positif
+        $seconds = abs($seconds);
+
+        $hours = floor($seconds / 3600);
+        $minutes = floor(($seconds % 3600) / 60);
+        $remainingSeconds = $seconds % 60;
+
+        $parts = [];
+        if ($hours > 0) $parts[] = "{$hours} jam";
+        if ($minutes > 0) $parts[] = "{$minutes} menit";
+        if ($remainingSeconds > 0) $parts[] = "{$remainingSeconds} detik";
+
+        return count($parts) > 0 ? implode(' ', $parts) : "0 detik";
     }
 
     public function show(Request $request, $userId)
@@ -60,13 +80,17 @@ class LaporanAbsensiController extends Controller
         $jamMasukSetting = Setting::where('key', 'jam_masuk_kantor')->value('value') ?? '08:00';
         $jamPulangSetting = Setting::where('key', 'jam_pulang_kantor')->value('value') ?? '17:00';
 
-        // Render partial view atau return JSON
-        // Kita return JSON biar gampang di consume JS frontend
+        // Format lateness for each item
+        $formattedData = $absensis->map(function($item) {
+            $item->keterlambatan_format = $this->formatSeconds($item->keterlambatan);
+            return $item;
+        });
+
         return response()->json([
             'user' => $user->name,
             'role' => $user->role,
             'periode' => Carbon::create($tahun, $bulan)->translatedFormat('F Y'),
-            'data' => $absensis,
+            'data' => $formattedData,
             'settings' => [
                 'jam_masuk' => $jamMasukSetting,
                 'jam_pulang' => $jamPulangSetting
@@ -86,11 +110,17 @@ class LaporanAbsensiController extends Controller
                            ->orderBy('tanggal', 'asc')
                            ->get();
                            
+        $totalDetik = $absensis->sum('keterlambatan');
         $summary = [
             'hadir' => $absensis->count(),
             'telat' => $absensis->where('status', 'Telat')->count(),
-            'total_menit_telat' => $absensis->sum('keterlambatan'),
+            'total_menit_telat' => $this->formatSeconds($totalDetik),
         ];
+
+        // Format each row
+        foreach ($absensis as $item) {
+            $item->keterlambatan_format = $this->formatSeconds($item->keterlambatan);
+        }
 
         $jamMasuk = Setting::where('key', 'jam_masuk_kantor')->value('value') ?? '08:00';
         $jamPulang = Setting::where('key', 'jam_pulang_kantor')->value('value') ?? '17:00';

@@ -176,7 +176,7 @@
                 <td>{{ $item->status }}</td>
                 <td class="left">
                     @if($item->status == 'Telat')
-                        Terlambat {{ $item->keterlambatan }} Menit
+                        Terlambat {{ $item->keterlambatan_format }}
                     @elseif($item->waktu_keluar && \Carbon\Carbon::parse($item->waktu_keluar)->lt(\Carbon\Carbon::parse($item->tanggal . ' ' . $jamPulang)))
                         Pulang Cepat
                     @else
@@ -203,7 +203,7 @@
         </div>
         <div class="summary-row">
             <strong>Akumulasi Keterlambatan:</strong>
-            <span>{{ $summary['total_menit_telat'] }} Menit</span>
+            <span>{{ $summary['total_menit_telat'] }}</span>
         </div>
     </div>
 

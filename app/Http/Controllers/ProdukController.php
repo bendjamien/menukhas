@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Produk;
 use App\Models\Kategori; 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Milon\Barcode\DNS1D; 
 
 class ProdukController extends Controller
@@ -103,7 +104,7 @@ class ProdukController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'nama_produk' => 'required|string|max:100',
             'kategori_id' => 'required|integer|exists:kategori,id', 
             'harga_jual' => 'required|numeric|min:0',
@@ -112,9 +113,15 @@ class ProdukController extends Controller
             'satuan' => 'nullable|string|max:30',
             'kode_barcode' => 'nullable|string|max:50|unique:produk,kode_barcode', 
             'deskripsi' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
-        Produk::create($request->all());
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('produk', 'public');
+            $validated['image'] = $path;
+        }
+
+        Produk::create($validated);
 
         return redirect()->route('produk.index')
                          ->with('toast_success', 'Produk berhasil ditambahkan!');
@@ -136,7 +143,7 @@ class ProdukController extends Controller
 
     public function update(Request $request, Produk $produk)
     {
-        $request->validate([
+        $validated = $request->validate([
             'nama_produk' => 'required|string|max:100',
             'kategori_id' => 'required|integer|exists:kategori,id', 
             'harga_jual' => 'required|numeric|min:0',
@@ -145,9 +152,19 @@ class ProdukController extends Controller
             'satuan' => 'nullable|string|max:30',
             'kode_barcode' => 'nullable|string|max:50|unique:produk,kode_barcode,' . $produk->id,
             'deskripsi' => 'nullable|string',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg|max:2048',
         ]);
 
-        $produk->update($request->all());
+        if ($request->hasFile('image')) {
+            // Hapus gambar lama jika ada
+            if ($produk->image) {
+                Storage::disk('public')->delete($produk->image);
+            }
+            $path = $request->file('image')->store('produk', 'public');
+            $validated['image'] = $path;
+        }
+
+        $produk->update($validated);
 
         return redirect()->route('produk.index')
                          ->with('toast_success', 'Produk berhasil diperbarui!');

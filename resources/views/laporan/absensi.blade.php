@@ -66,7 +66,7 @@
                             <th class="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nama Pegawai</th>
                             <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Total Hadir</th>
                             <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Telat (Kali)</th>
-                            <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Total Menit Telat</th>
+                            <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Total Keterlambatan</th>
                             <th class="px-6 py-4 text-center text-xs font-bold text-gray-500 uppercase tracking-wider">Aksi</th>
                         </tr>
                     </thead>
@@ -97,7 +97,7 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium text-gray-600">
-                                {{ $row['total_menit_telat'] }} Menit
+                                {{ $row['total_menit_telat'] }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-center">
                                 <button @click="openDetail({{ $row['user']->id }})" class="text-sky-600 hover:text-sky-900 font-bold text-sm bg-sky-50 px-4 py-2 rounded-lg hover:bg-sky-100 transition">
@@ -221,7 +221,7 @@
                                                 <td class="px-6 py-4 text-sm whitespace-nowrap">
                                                     <div x-show="item.status === 'Telat'" class="flex items-center text-red-600">
                                                         <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                                                        <span class="font-semibold" x-text="'+ ' + item.keterlambatan + ' mnt'"></span>
+                                                        <span class="font-semibold" x-text="'+ ' + item.keterlambatan_format"></span>
                                                     </div>
                                                     <span x-show="item.status !== 'Telat'" class="text-gray-300 font-light italic">Tepat waktu</span>
                                                 </td>

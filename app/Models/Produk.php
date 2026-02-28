@@ -24,6 +24,7 @@ class Produk extends Model
         'harga_jual',
         'stok',
         'satuan',
+        'image',
         'deskripsi',
         'gambar_url',
         'status',

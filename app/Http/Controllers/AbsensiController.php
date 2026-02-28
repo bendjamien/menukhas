@@ -69,7 +69,21 @@ class AbsensiController extends Controller
 
                 if ($now->greaterThan($batasTelat)) {
                     $status = 'Telat';
-                    $keterlambatan = $now->diffInMinutes($jadwalMasuk); // Hitung selisih dari jadwal masuk asli
+                    
+                    // Gunakan diffInSeconds untuk mendapatkan total detik secara akurat
+                    $keterlambatan = $now->diffInSeconds($jadwalMasuk);
+                    
+                    // Hitung detail untuk pesan notifikasi
+                    $diff = $now->diff($jadwalMasuk);
+                    $jam = $diff->h;
+                    $menit = $diff->i;
+                    $detik = $diff->s;
+                    
+                    $waktuTelatText = "";
+                    if ($jam > 0) $waktuTelatText .= "{$jam} jam ";
+                    if ($menit > 0) $waktuTelatText .= "{$menit} menit ";
+                    if ($detik > 0) $waktuTelatText .= "{$detik} detik";
+                    $waktuTelatText = trim($waktuTelatText);
                 }
 
                 Absensi::create([
@@ -82,7 +96,7 @@ class AbsensiController extends Controller
 
                 $pesan = "Halo {$user->name}, Selamat Bekerja!";
                 if ($status == 'Telat') {
-                    $pesan = "Halo {$user->name}, Anda terlambat {$keterlambatan} menit. Semangat mengejar ketertinggalan!";
+                    $pesan = "Halo {$user->name}, Anda terlambat {$waktuTelatText}. Semangat mengejar ketertinggalan!";
                 }
 
                 return response()->json([

@@ -82,6 +82,22 @@
                 <span class="absolute right-3 w-1.5 h-1.5 rounded-full bg-sky-500 shadow-md shadow-sky-300"></span>
             @endif
         </a>
+
+        <!-- DAFTAR MEMBER BARU -->
+        <a href="{{ route('member.registration.index') }}" 
+           class="group relative flex items-center px-4 py-3 text-sm font-medium rounded-2xl transition-all duration-200 {{ $isLocked ? 'opacity-50 pointer-events-none grayscale' : '' }}
+                  {{ request()->is('daftar-member*') 
+                     ? 'bg-sky-50 text-sky-700 shadow-sm ring-1 ring-sky-100' 
+                     : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
+            
+            <svg class="flex-shrink-0 w-5 h-5 transition-colors duration-200 {{ request()->is('daftar-member*') ? 'text-sky-600' : 'text-gray-400 group-hover:text-gray-600' }}"
+                 fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
+            <span class="ml-3">Daftar Member</span>
+            
+            @if(request()->is('daftar-member*'))
+                <span class="absolute right-3 w-1.5 h-1.5 rounded-full bg-sky-500 shadow-md shadow-sky-300"></span>
+            @endif
+        </a>
         @endif
         
         <!-- SEPARATOR -->

@@ -19,6 +19,7 @@ use App\Http\Controllers\LaporanPendapatanController;
 use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\AbsensiController; 
+use App\Http\Controllers\MemberRegistrationController;
 use Illuminate\Support\Facades\Route;
 
 // ===========================================
@@ -176,6 +177,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('dashboard');
 
     Route::post('/chat-ai', [ChatController::class, 'sendMessage'])->name('chat.send');
+    // Pendaftaran Member Baru Flow
+    Route::get('daftar-member', [MemberRegistrationController::class, 'index'])->name('member.registration.index');
+    Route::post('daftar-member/send-otp', [MemberRegistrationController::class, 'sendOTP'])->name('member.registration.send_otp');
+    Route::post('daftar-member/verify-otp', [MemberRegistrationController::class, 'verifyOTP'])->name('member.registration.verify_otp');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/request-pin', [ProfileController::class, 'requestPinChange'])->name('profile.request_pin');

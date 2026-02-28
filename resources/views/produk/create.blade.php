@@ -1,160 +1,198 @@
 <x-app-layout>
-    <div class="bg-white p-8 rounded-lg shadow-md max-w-4xl mx-auto">
+    <div class="max-w-5xl mx-auto py-8 px-4" x-data="{ 
+        imagePreview: null,
+        handleFileChange(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => { this.imagePreview = e.target.result; };
+                reader.readAsDataURL(file);
+            }
+        }
+    }">
         
-        <div class="flex justify-between items-center mb-6">
-            <h1 class="text-2xl font-bold text-gray-800">Tambah Produk Baru</h1>
-            <a href="{{ route('produk.index') }}" class="text-sm text-gray-600 hover:text-sky-500">&larr; Kembali ke Daftar</a>
+        <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-black text-gray-800 tracking-tight">Tambah Menu Baru</h1>
+                <p class="text-sm text-gray-500 mt-1 uppercase font-bold tracking-widest">Inventaris & Katalog Produk</p>
+            </div>
+            <a href="{{ route('produk.index') }}" class="inline-flex items-center px-5 py-2.5 bg-white border border-gray-200 rounded-2xl font-bold text-xs text-gray-600 uppercase tracking-widest hover:bg-gray-50 transition shadow-sm">
+                &larr; Batal & Kembali
+            </a>
         </div>
 
-        <form action="{{ route('produk.store') }}" method="POST">
+        <form action="{{ route('produk.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="flex flex-col lg:flex-row gap-8">
                 
-                <div class="md:col-span-2">
-                    <label for="nama_produk" class="block text-sm font-medium text-gray-700">Nama Produk</label>
-                    <input type="text" name="nama_produk" id="nama_produk" value="{{ old('nama_produk') }}" 
-                           class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500" 
-                           required>
+                <!-- KIRI: UPLOAD GAMBAR -->
+                <div class="w-full lg:w-1/3">
+                    <div class="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100 text-center">
+                        <label class="block text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-6">Foto Produk</label>
+                        
+                        <div class="relative group mx-auto mb-6">
+                            <div class="w-full aspect-square rounded-[2rem] bg-gray-50 border-2 border-dashed border-gray-200 flex flex-col items-center justify-center overflow-hidden transition-all group-hover:border-sky-400 group-hover:bg-sky-50">
+                                <template x-if="imagePreview">
+                                    <img :src="imagePreview" class="w-full h-full object-cover">
+                                </template>
+                                <template x-if="!imagePreview">
+                                    <div class="flex flex-col items-center text-gray-300 group-hover:text-sky-400 transition-colors">
+                                        <svg class="w-16 h-16 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                        <p class="text-[10px] font-black uppercase tracking-widest">Pilih Gambar</p>
+                                    </div>
+                                </template>
+                            </div>
+                            <input type="file" name="image" @change="handleFileChange" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer z-10">
+                        </div>
+                        <p class="text-[10px] text-gray-400 leading-relaxed font-medium">Gunakan gambar resolusi tinggi (PNG/JPG) maksimal 2MB untuk hasil terbaik.</p>
+                    </div>
                 </div>
 
-                <div>
-                    <label for="kategori_id" class="block text-sm font-medium text-gray-700">Kategori</label>
-                    <select name="kategori_id" id="kategori_id" required
-                            class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500">
-                        <option value="">-- Pilih Kategori --</option>
-                        @foreach ($kategoris as $kategori)
-                            <option value="{{ $kategori->id }}" {{ old('kategori_id') == $kategori->id ? 'selected' : '' }}>
-                                {{ $kategori->nama }}
-                            </option>
-                        @endforeach
-                    </select>
+                <!-- KANAN: FORM DATA -->
+                <div class="flex-grow">
+                    <div class="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-xl shadow-gray-200/50 border border-gray-100">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                            
+                            <div class="md:col-span-2">
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Nama Produk / Menu</label>
+                                <input type="text" name="nama_produk" value="{{ old('nama_produk') }}" required 
+                                       class="w-full bg-gray-50 border-none rounded-2xl py-4 px-5 font-bold text-gray-800 focus:ring-2 focus:ring-sky-500 transition-all placeholder-gray-300" placeholder="Contoh: Kopi Susu Gula Aren">
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Kategori</label>
+                                <select name="kategori_id" required class="w-full bg-gray-50 border-none rounded-2xl py-4 px-5 font-bold text-gray-800 focus:ring-2 focus:ring-sky-500 transition-all">
+                                    <option value="">-- Pilih --</option>
+                                    @foreach ($kategoris as $k)
+                                        <option value="{{ $k->id }}">{{ $k->nama }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Kode Barcode (Scan Sekarang)</label>
+                                <input type="text" name="kode_barcode" id="kode_barcode" value="{{ old('kode_barcode', $autoBarcode) }}"
+                                       class="w-full bg-gray-50 border-none rounded-2xl py-4 px-5 font-mono text-gray-800 focus:ring-2 focus:ring-sky-500 transition-all placeholder-gray-300" 
+                                       placeholder="Scan..."
+                                       autofocus
+                                       autocomplete="off"
+                                       onkeydown="if(event.key === 'Enter' || event.key === 'Tab') { 
+                                           event.preventDefault(); 
+                                           const val = this.value;
+                                           setTimeout(() => lookupBarcode(val), 50); 
+                                       }">
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Harga Beli (Modal)</label>
+                                <div class="relative">
+                                    <span class="absolute left-5 top-1/2 -translate-y-1/2 font-bold text-gray-400 text-sm">Rp</span>
+                                    <input type="number" name="harga_beli" value="{{ old('harga_beli', 0) }}" required 
+                                           class="w-full bg-gray-50 border-none rounded-2xl py-4 pl-12 pr-5 font-black text-gray-800 focus:ring-2 focus:ring-sky-500 transition-all">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Harga Jual</label>
+                                <div class="relative">
+                                    <span class="absolute left-5 top-1/2 -translate-y-1/2 font-bold text-sky-600 text-sm">Rp</span>
+                                    <input type="number" name="harga_jual" value="{{ old('harga_jual', 0) }}" required 
+                                           class="w-full bg-sky-50 border-none rounded-2xl py-4 pl-12 pr-5 font-black text-sky-700 focus:ring-2 focus:ring-sky-500 transition-all">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Stok Awal</label>
+                                <input type="number" name="stok" value="{{ old('stok', 0) }}" 
+                                       class="w-full bg-gray-50 border-none rounded-2xl py-4 px-5 font-bold text-gray-800 focus:ring-2 focus:ring-sky-500 transition-all">
+                            </div>
+
+                            <div>
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Satuan</label>
+                                <input type="text" name="satuan" value="{{ old('satuan', 'PCS') }}" 
+                                       class="w-full bg-gray-50 border-none rounded-2xl py-4 px-5 font-bold text-gray-800 focus:ring-2 focus:ring-sky-500 transition-all" placeholder="PCS / Porsi / KG">
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <label class="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 px-1">Deskripsi Produk (Opsional)</label>
+                                <textarea name="deskripsi" rows="3" class="w-full bg-gray-50 border-none rounded-2xl py-4 px-5 font-medium text-gray-800 focus:ring-2 focus:ring-sky-500 transition-all placeholder-gray-300" placeholder="Jelaskan detail menu ini..."></textarea>
+                            </div>
+                        </div>
+
+                        <div class="mt-10 pt-8 border-t border-gray-50 flex justify-end">
+                            <button type="submit" class="w-full md:w-auto px-12 py-4 bg-sky-600 hover:bg-sky-700 text-white font-black rounded-2xl shadow-xl shadow-sky-500/20 transition-all transform hover:-translate-y-1 active:scale-95 uppercase tracking-widest text-xs">
+                                Simpan Produk & Katalog
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
-                <div>
-                    <label for="kode_barcode" class="block text-sm font-medium text-gray-700">Kode Barcode (Scan / Ketik)</label>
-                    <input type="text" name="kode_barcode" id="kode_barcode" value="{{ old('kode_barcode', $autoBarcode) }}"
-                           class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500 font-mono tracking-wide"
-                           placeholder="Scan barcode produk..." autofocus
-                           autocomplete="off" spellcheck="false"
-                           onkeydown="if(event.key === 'Enter' || event.key === 'Tab') { 
-                               event.preventDefault(); 
-                               const input = this;
-                               // Jeda lebih lama (100ms) untuk menangkap kode GS1 yang panjang
-                               setTimeout(() => { lookupBarcode(input.value); }, 100) 
-                           }">
-                    <p class="text-xs text-gray-500 mt-1">Tekan tab atau scan langsung dari kemasan.</p>
-                </div>
-
-                <div>
-                    <label for="harga_beli" class="block text-sm font-medium text-gray-700">Harga Beli</label>
-                    <input type="number" name="harga_beli" id="harga_beli" value="{{ old('harga_beli', 0) }}" step="any"
-                           class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500" required>
-                </div>
-
-                <div>
-                    <label for="harga_jual" class="block text-sm font-medium text-gray-700">Harga Jual</label>
-                    <input type="number" name="harga_jual" id="harga_jual" value="{{ old('harga_jual', 0) }}" step="any"
-                           class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500" required>
-                </div>
-
-                <div>
-                    <label for="stok" class="block text-sm font-medium text-gray-700">Stok Awal</label>
-                    <input type="number" name="stok" id="stok" value="{{ old('stok', 0) }}"
-                           class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500">
-                </div>
-                
-                <div>
-                    <label for="satuan" class="block text-sm font-medium text-gray-700">Satuan (Mis: PCS, KG, Botol)</label>
-                    <input type="text" name="satuan" id="satuan" value="{{ old('satuan', 'PCS') }}"
-                           class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500">
-                </div>
-
-                <div class="md:col-span-2">
-                    <label for="deskripsi" class="block text-sm font-medium text-gray-700">Deskripsi (Opsional)</label>
-                    <textarea name="deskripsi" id="deskripsi" rows="3" 
-                              class="mt-1 block w-full border border-gray-300 rounded-lg shadow-sm py-2 px-3 focus:outline-none focus:ring-sky-500 focus:border-sky-500">{{ old('deskripsi') }}</textarea>
-                </div>
-            
-            </div> <div class="flex justify-end pt-6 mt-6 border-t">
-                <button type="submit" 
-                        class="bg-sky-500 hover:bg-sky-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md transition duration-200">
-                    Simpan Produk
-                </button>
             </div>
         </form>
     </div>
 
     <script>
-        // Total Blocker for browser shortcuts sent by scanner (e.g., F1-F12, Ctrl combinations)
-        document.addEventListener('keydown', function(e) {
-            // Block all F-keys (F1 - F12)
-            if (e.key.startsWith('F')) {
+        // Global Barcode Collector for Product Create
+        let barcodeBuffer = '';
+        let barcodeTimeout = null;
+
+        document.addEventListener('keydown', e => {
+            // Block DevTools & Shortcuts
+            if (e.key.startsWith('F') || (e.ctrlKey && ['I','J','C','K','L'].includes(e.key.toUpperCase()))) {
                 e.preventDefault();
-                return false;
+                return;
             }
-            // Block DevTools & Browser history/downloads (commonly triggered by fast scanners)
-            if (e.ctrlKey && (e.shiftKey || e.key === 'j' || e.key === 'h' || e.key === 'l')) {
-                const blockedShiftKeys = ['I', 'J', 'C', 'K', 'L'];
-                if (blockedShiftKeys.includes(e.key.toUpperCase()) || e.key === 'j' || e.key === 'h' || e.key === 'l') {
+
+            // Global capture logic
+            if (e.key.length === 1) {
+                barcodeBuffer += e.key;
+                if (barcodeTimeout) clearTimeout(barcodeTimeout);
+                barcodeTimeout = setTimeout(() => { barcodeBuffer = ''; }, 150);
+            } else if (e.key === 'Enter' || e.key === 'Tab') {
+                if (barcodeBuffer.length >= 3) {
                     e.preventDefault();
-                    return false;
+                    lookupBarcode(barcodeBuffer);
+                    barcodeBuffer = '';
                 }
             }
         });
 
         // Function to auto-fill product data from barcode
-        function lookupBarcode(barcode) {
+        async function lookupBarcode(barcode) {
             if (!barcode) return;
+            const cleanBarcode = barcode.trim().replace(/\(\d+\)/g, '');
+            const input = document.getElementById('kode_barcode');
             
-            // Clean GS1-128 Barcode: Remove parentheses like (90), (91), etc.
-            let displayBarcode = barcode.trim();
-            // This regex will remove (90), (91), (01), etc. but keep the alphanumeric data
-            let searchBarcode = displayBarcode.replace(/\(\d+\)/g, '');
-            
-            // Update input value with cleaned version if it was GS1
-            const barcodeInput = document.getElementById('kode_barcode');
-            if (displayBarcode !== searchBarcode) {
-                barcodeInput.value = searchBarcode;
-            }
+            // Set value to input
+            input.value = cleanBarcode;
+            input.classList.add('bg-sky-100');
 
-            if (searchBarcode.length < 3) return;
-
-            barcodeInput.classList.add('bg-blue-50');
-            barcodeInput.disabled = true;
-
-            fetch(`/produk/check-barcode/${encodeURIComponent(searchBarcode)}`)
-                .then(response => response.json())
-                .then(result => {
-                    barcodeInput.classList.remove('bg-blue-50');
-                    barcodeInput.disabled = false;
-                    
-                    if (result.status === 'success') {
-                        const data = result.data;
-                        if (data.nama_produk) {
-                            document.getElementById('nama_produk').value = data.nama_produk;
-                        }
-                        
-                        if (result.source === 'local') {
-                            alert('Produk ini SUDAH ADA di database Anda. Nama terisi otomatis.');
-                            if (data.kategori_id) document.getElementById('kategori_id').value = data.kategori_id;
-                            if (data.harga_beli) document.getElementById('harga_beli').value = data.harga_beli;
-                            if (data.harga_jual) document.getElementById('harga_jual').value = data.harga_jual;
-                            if (data.satuan) document.getElementById('satuan').value = data.satuan;
-                        }
-                        // If found name, move to harga_beli
-                        setTimeout(() => document.getElementById('harga_beli').focus(), 100);
-                    } else {
-                        // IF NOT FOUND (Usually for Parts/Non-Food)
-                        // Directly focus to Nama Produk so user can type it manually
-                        setTimeout(() => document.getElementById('nama_produk').focus(), 100);
+            try {
+                let res = await fetch(`/produk/check-barcode/${encodeURIComponent(cleanBarcode)}`);
+                let result = await res.json();
+                input.classList.remove('bg-sky-100');
+                
+                if (result.status === 'success') {
+                    const data = result.data;
+                    if (data.nama_produk) {
+                        document.getElementsByName('nama_produk')[0].value = data.nama_produk;
                     }
-                })
-                .catch(error => {
-                    console.error('Lookup error:', error);
-                    barcodeInput.classList.remove('bg-blue-50');
-                    barcodeInput.disabled = false;
-                    document.getElementById('nama_produk').focus();
-                });
+                    
+                    if (result.source === 'local') {
+                        Toastify({ text: 'Produk sudah ada di database.', duration: 3000, style: { background: '#0284c7' } }).showToast();
+                    } else {
+                        Toastify({ text: 'Data produk ditemukan!', duration: 2000, style: { background: '#10b981' } }).showToast();
+                    }
+                    // Focus next field (Harga Beli)
+                    document.getElementsByName('harga_beli')[0].focus();
+                } else {
+                    // Not found, focus Nama Produk
+                    document.getElementsByName('nama_produk')[0].focus();
+                }
+            } catch (e) { 
+                input.classList.remove('bg-sky-100');
+                document.getElementsByName('nama_produk')[0].focus();
+            }
         }
     </script>
 </x-app-layout>
