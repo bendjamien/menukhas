@@ -126,9 +126,11 @@
                 <a href="{{ route('pelanggan.index') }}" class="block px-3 py-2 rounded-xl text-sm transition-colors {{ request()->is('pelanggan*') ? 'text-sky-600 bg-sky-50 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50' }}">
                     Pelanggan
                 </a>
+                @if(Auth::user()->role == 'admin' || Auth::user()->role == 'owner')
                 <a href="{{ route('karyawan.index') }}" class="block px-3 py-2 rounded-xl text-sm transition-colors {{ request()->is('karyawan*') ? 'text-sky-600 bg-sky-50 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50' }}">
                     Karyawan
                 </a>
+                @endif
                 @if(Auth::user()->role == 'admin')
                     <a href="{{ route('kategori.index') }}" class="block px-3 py-2 rounded-xl text-sm transition-colors {{ request()->is('kategori*') ? 'text-sky-600 bg-sky-50 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50' }}">
                         Kategori Menu
