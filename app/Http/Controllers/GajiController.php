@@ -97,6 +97,18 @@ class GajiController extends Controller
         $bulan = (int)$request->bulan;
         $tahun = (int)$request->tahun;
 
+        // VALIDASI: Hanya boleh generate untuk bulan dan tahun berjalan
+        $currentMonth = (int)date('m');
+        $currentYear = (int)date('Y');
+
+        if ($tahun < $currentYear || ($tahun == $currentYear && $bulan < $currentMonth)) {
+            return back()->with('toast_danger', 'Tidak dapat generate ulang gaji untuk periode yang sudah lewat.');
+        }
+
+        if ($tahun > $currentYear || ($tahun == $currentYear && $bulan > $currentMonth)) {
+            return back()->with('toast_danger', 'Tidak dapat generate gaji untuk periode masa depan.');
+        }
+
         $users = User::where('role', 'kasir')->get();
 
         try {
