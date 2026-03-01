@@ -193,7 +193,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Riwayat Transaksi
     Route::get('/transaksi', [TransaksiController::class, 'index'])->name('transaksi.index');
     Route::get('/transaksi/{transaksi}', [TransaksiController::class, 'show'])->name('transaksi.show');
-    Route::get('/transaksi/{transaksi}/cetak-struk', [TransaksiController::class, 'cetakStruk'])->name('transaksi.cetak-struk');
+    Route::get('/transaksi/{transaksi}/cetak-struk', [TransaksiController::class, 'cetakStruk'])->name('transaksi.cetak_struk');
 
     // Pengeluaran (Expense Management)
     Route::get('/pengeluaran/export-pdf', [PengeluaranController::class, 'exportPdf'])->name('pengeluaran.export_pdf');
