@@ -1,7 +1,7 @@
 <x-app-layout>
     <div class="py-12">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
-            
+
             <!-- HEADER -->
             <div class="flex items-center gap-4">
                 <div class="p-3 bg-sky-100 text-sky-600 rounded-xl">
@@ -14,25 +14,25 @@
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
+
                 <!-- KOLOM KIRI: KARTU IDENTITAS -->
                 <div class="space-y-6">
                     <!-- Kartu Profil -->
                     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
                         <!-- Header Background -->
                         <div class="h-32 bg-gradient-to-r from-sky-500 to-blue-600"></div>
-                        
+
                         <!-- Avatar Section (Uploadable) -->
                         <div class="relative -mt-12 flex justify-center" x-data="{ photoName: null, photoPreview: null }">
                             <form id="avatar-form" action="{{ route('profile.update') }}" method="POST" enctype="multipart/form-data">
                                 @csrf
                                 @method('PATCH')
-                                
+
                                 <!-- Hidden fields to pass validation -->
                                 <input type="hidden" name="name" value="{{ $user->name }}">
                                 <input type="hidden" name="email" value="{{ $user->email }}">
                                 <input type="hidden" name="username" value="{{ $user->username }}">
-                                
+
                                 <input type="file" name="avatar" class="hidden" x-ref="photo"
                                        x-on:change="
                                            photoName = $refs.photo.files[0].name;
@@ -46,7 +46,7 @@
 
                                 <div class="w-24 h-24 bg-white p-1.5 rounded-full shadow-lg relative group cursor-pointer"
                                      x-on:click.prevent="$refs.photo.click()">
-                                    
+
                                     <!-- Foto Profil -->
                                     <div class="w-full h-full rounded-full overflow-hidden border border-sky-100 flex items-center justify-center bg-sky-50">
                                         <!-- Preview (Jika upload baru) -->
@@ -55,7 +55,7 @@
                                                   x-bind:style="'background-image: url(\'' + photoPreview + '\');'">
                                             </span>
                                         </div>
-                                        
+
                                         <!-- Current Avatar (Database) -->
                                         <div x-show="!photoPreview">
                                             @if($user->avatar)
@@ -88,7 +88,7 @@
 
                             <!-- Role Badge -->
                             <div class="inline-flex items-center px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-sm border
-                                {{ $user->role === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-100' : 
+                                {{ $user->role === 'admin' ? 'bg-purple-50 text-purple-700 border-purple-100' :
                                   ($user->role === 'kasir' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-gray-50 text-gray-600 border-gray-200') }}">
                                 {{ $user->role }}
                             </div>
@@ -98,7 +98,7 @@
                         <div class="bg-gray-50 border-t border-gray-100 p-4 grid grid-cols-2 divide-x divide-gray-200">
                             <div class="text-center">
                                 <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Bergabung</p>
-                                <p class="text-sm font-bold text-gray-700">{{ $user->created_at->format('d M Y') }}</p>
+                                <p class="text-sm font-bold text-gray-700">{{ $user->created_at ? $user->created_at->format('d M Y') : '-' }}</p>
                             </div>
                             <div class="text-center">
                                 <p class="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-1">Status PIN</p>
@@ -120,7 +120,7 @@
                             </div>
                             <h3 class="text-lg font-bold text-gray-800">PIN Keamanan</h3>
                         </div>
-                        
+
                         <p class="text-sm text-gray-600 mb-4">
                             PIN digunakan untuk akses cepat saat login atau otorisasi di kasir. PIN harus 6 digit angka.
                         </p>
@@ -153,7 +153,7 @@
 
                 <!-- KOLOM KANAN: FORM UPDATE -->
                 <div class="lg:col-span-2 space-y-6">
-                    
+
                     <!-- UPDATE PROFILE -->
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                         <div class="flex items-center gap-2 mb-6 border-b border-gray-100 pb-4">
