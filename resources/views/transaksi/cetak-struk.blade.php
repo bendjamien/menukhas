@@ -20,9 +20,9 @@
             color: #000;
         }
 
-        /* Container for the receipt content - ensures consistent width */
+        /* Container for the receipt content */
         .receipt-container {
-            width: 72mm; /* Typical printable width for 80mm paper */
+            width: 72mm; 
             margin: 0 auto;
             padding: 2mm 0;
         }
@@ -35,7 +35,7 @@
         
         .divider { 
             border-top: 1px dashed #000; 
-            margin: 5px 0; 
+            margin: 8px 0; 
             width: 100%;
         }
         
@@ -58,52 +58,49 @@
         
         td {
             vertical-align: top;
-            padding: 1px 0;
+            padding: 2px 0;
         }
 
         /* Print Specific Styles */
         @media print {
             @page {
                 margin: 0;
-                size: 80mm auto; /* Critical for thermal printers */
+                size: 80mm auto; 
             }
             body {
                 margin: 0;
             }
             .receipt-container {
-                width: 100%; /* Fill the page width defined by @page */
-                padding: 0 2mm; /* Small side padding just in case */
+                width: 100%; 
+                padding: 0 4mm; 
             }
             .no-print {
                 display: none !important;
             }
         }
 
-        /* Button Style for Screen */
         .btn-print {
             display: block;
-            width: 200px;
+            width: 220px;
             margin: 20px auto;
-            padding: 10px;
-            background: #2563eb; /* Sky Blue/Blue */
+            padding: 12px;
+            background: #0ea5e9; 
             color: #fff;
             text-align: center;
-            border-radius: 6px;
+            border-radius: 12px;
             text-decoration: none;
             font-family: sans-serif;
-            font-weight: 600;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .btn-print:hover {
-            background: #1d4ed8;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
         }
     </style>
 </head>
 <body onload="window.print()">
 
-    <!-- Print Button (Hidden when printing) -->
     <a href="#" onclick="window.print(); return false;" class="btn-print no-print">
-        🖨️ Cetak Struk Sekarang
+        Cetak Struk
     </a>
 
     <div class="receipt-container">
@@ -123,7 +120,7 @@
         <div class="info-block">
             <table>
                 <tr>
-                    <td>No Inv</td>
+                    <td width="30%">No. Inv</td>
                     <td>: #{{ str_pad($transaksi->id, 5, '0', STR_PAD_LEFT) }}</td>
                 </tr>
                 <tr>
@@ -135,7 +132,7 @@
                     <td>: {{ $transaksi->kasir->name ?? 'Admin' }}</td>
                 </tr>
                 <tr>
-                    <td>Plg</td>
+                    <td>Customer</td>
                     <td>: {{ $transaksi->pelanggan->nama ?? 'Umum' }}</td>
                 </tr>
             </table>
@@ -147,15 +144,15 @@
         <table>
             @foreach ($transaksi->details as $item)
             <tr>
-                <td colspan="2" style="font-weight: bold; padding-top: 4px;">
+                <td colspan="2" class="bold" style="padding-top: 4px;">
                     {{ $item->produk->nama_produk ?? 'Item Dihapus' }}
                 </td>
             </tr>
             <tr>
-                <td style="padding-left: 10px;">
+                <td style="padding-left: 10px; font-size: 9pt;">
                     {{ $item->jumlah }} x {{ number_format($item->harga_satuan, 0, ',', '.') }}
                 </td>
-                <td class="text-right">
+                <td class="text-right" style="font-size: 9pt;">
                     {{ number_format($item->subtotal, 0, ',', '.') }}
                 </td>
             </tr>
@@ -167,40 +164,65 @@
         <!-- Totals -->
         <table>
             <tr>
-                <td>Subtotal</td>
+                <td class="text-left">Subtotal</td>
                 <td class="text-right">{{ number_format($transaksi->total - $transaksi->pajak + $transaksi->diskon, 0, ',', '.') }}</td>
             </tr>
             @if($transaksi->diskon > 0)
             <tr>
-                <td>Diskon</td>
+                <td class="text-left">Diskon</td>
                 <td class="text-right">-{{ number_format($transaksi->diskon, 0, ',', '.') }}</td>
             </tr>
             @endif
             @if($transaksi->pajak > 0)
             <tr>
-                <td>Pajak</td>
+                <td class="text-left">Pajak</td>
                 <td class="text-right">{{ number_format($transaksi->pajak, 0, ',', '.') }}</td>
             </tr>
             @endif
             
             <tr class="bold">
-                <td style="padding-top: 5px; font-size: 11pt;">TOTAL</td>
+                <td class="text-left" style="padding-top: 5px; font-size: 11pt;">GRAND TOTAL</td>
                 <td class="text-right" style="padding-top: 5px; font-size: 11pt;">
-                    {{ number_format($transaksi->total, 0, ',', '.') }}
+                    Rp {{ number_format($transaksi->total, 0, ',', '.') }}
                 </td>
             </tr>
 
-            @if($transaksi->pembayaran)
-            <tr style="padding-top: 5px;">
-                <td>Bayar ({{ $transaksi->metode_bayar }})</td>
-                <td class="text-right">{{ number_format($transaksi->pembayaran->jumlah_bayar, 0, ',', '.') }}</td>
+            @if($transaksi->nominal_bayar > 0)
+            <tr style="padding-top: 8px;">
+                <td class="text-left">Bayar ({{ $transaksi->metode_bayar }})</td>
+                <td class="text-right">{{ number_format($transaksi->nominal_bayar, 0, ',', '.') }}</td>
             </tr>
             <tr>
-                <td>Kembali</td>
-                <td class="text-right">{{ number_format($transaksi->pembayaran->kembalian, 0, ',', '.') }}</td>
+                <td class="text-left">Kembali</td>
+                <td class="text-right">{{ number_format($transaksi->kembalian, 0, ',', '.') }}</td>
             </tr>
             @endif
         </table>
+
+        @if($transaksi->pelanggan_id && ($transaksi->poin_earned > 0 || $transaksi->poin_used > 0))
+        <div class="divider"></div>
+        <div class="info-block">
+            <div class="bold text-center" style="margin-bottom: 3px;">INFO POIN MEMBER</div>
+            <table>
+                @if($transaksi->poin_used > 0)
+                <tr>
+                    <td>Poin Ditukar</td>
+                    <td class="text-right">{{ number_format($transaksi->poin_used) }} pts</td>
+                </tr>
+                @endif
+                @if($transaksi->poin_earned > 0)
+                <tr>
+                    <td>Poin Didapat</td>
+                    <td class="text-right">+{{ number_format($transaksi->poin_earned) }} pts</td>
+                </tr>
+                @endif
+                <tr>
+                    <td>Total Poin</td>
+                    <td class="text-right">{{ number_format($transaksi->pelanggan->poin) }} pts</td>
+                </tr>
+            </table>
+        </div>
+        @endif
 
         <div class="divider"></div>
 
@@ -208,11 +230,11 @@
         <div class="text-center info-block" style="margin-top: 10px;">
             <div class="bold">TERIMA KASIH</div>
             <div>Silakan Datang Kembali</div>
-            <div style="font-size: 8pt; margin-top: 5px;">Powered by MenuKhas</div>
+            <div style="font-size: 8pt; margin-top: 8px; opacity: 0.5;">{{ \Carbon\Carbon::now()->format('d/m/Y H:i:s') }}</div>
         </div>
 
         <!-- Bottom Spacer for Cutter -->
-        <div style="height: 10mm;"></div>
+        <div style="height: 15mm;"></div>
 
     </div>
 
