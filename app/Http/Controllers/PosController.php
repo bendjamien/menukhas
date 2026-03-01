@@ -80,6 +80,71 @@ class PosController extends Controller
         ]);
     }
 
+    public function splitBill(Request $request)
+    {
+        $request->validate([
+            'transaksi_id' => 'required|exists:transaksi,id',
+            'items' => 'required|array|min:1',
+            'items.*.detail_id' => 'required|exists:transaksi_detail,id',
+            'items.*.qty' => 'required|integer|min:1'
+        ]);
+
+        try {
+            DB::beginTransaction();
+
+            $oldTrx = Transaksi::findOrFail($request->transaksi_id);
+            
+            // 1. Buat Transaksi Baru (Draft)
+            $newTrx = Transaksi::create([
+                'kasir_id' => Auth::id(),
+                'pelanggan_id' => $oldTrx->pelanggan_id,
+                'tanggal' => now(),
+                'status' => 'draft',
+                'total' => 0
+            ]);
+
+            foreach ($request->items as $itemData) {
+                $detail = TransaksiDetail::findOrFail($itemData['detail_id']);
+                $qtyToMove = $itemData['qty'];
+
+                if ($qtyToMove >= $detail->jumlah) {
+                    // Pindahkan seluruhnya
+                    $detail->update(['transaksi_id' => $newTrx->id]);
+                } else {
+                    // Pindahkan sebagian saja (split quantity)
+                    // Kurangi qty di yang lama
+                    $detail->decrement('jumlah', $qtyToMove);
+                    $detail->update(['subtotal' => $detail->jumlah * $detail->harga_satuan]);
+
+                    // Buat detail baru di yang baru
+                    TransaksiDetail::create([
+                        'transaksi_id' => $newTrx->id,
+                        'produk_id' => $detail->produk_id,
+                        'jumlah' => $qtyToMove,
+                        'harga_satuan' => $detail->harga_satuan,
+                        'subtotal' => $qtyToMove * $detail->harga_satuan
+                    ]);
+                }
+            }
+
+            // 2. Hitung ulang total keduanya
+            $this->recalculateTransactionTotal($oldTrx);
+            $this->recalculateTransactionTotal($newTrx);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Tagihan berhasil dipisah ke Draft #' . $newTrx->id,
+                'new_trx_id' => $newTrx->id
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+        }
+    }
+
     private function recalculateTransactionTotal(Transaksi $transaksi)
     {
         $subtotal = $transaksi->details()->sum(DB::raw('harga_satuan * jumlah'));

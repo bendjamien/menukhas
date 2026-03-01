@@ -20,6 +20,10 @@ use App\Http\Controllers\VoucherController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\AbsensiController; 
 use App\Http\Controllers\MemberRegistrationController;
+use App\Http\Controllers\ShiftController;
+use App\Http\Controllers\PengeluaranController;
+use App\Http\Controllers\GajiController;
+use App\Http\Controllers\KasbonController;
 use Illuminate\Support\Facades\Route;
 
 // ===========================================
@@ -186,17 +190,49 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::post('/profile/request-pin', [ProfileController::class, 'requestPinChange'])->name('profile.request_pin');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    // Riwayat Transaksi
+    Route::get('/transaksi', [TransaksiController::class, 'index'])->name('transaksi.index');
+    Route::get('/transaksi/{transaksi}', [TransaksiController::class, 'show'])->name('transaksi.show');
+    Route::get('/transaksi/{transaksi}/cetak-struk', [TransaksiController::class, 'cetakStruk'])->name('transaksi.cetak-struk');
+
+    // Pengeluaran (Expense Management)
+    Route::get('/pengeluaran/export-pdf', [PengeluaranController::class, 'exportPdf'])->name('pengeluaran.export_pdf');
+    Route::get('/pengeluaran/export-excel', [PengeluaranController::class, 'exportExcel'])->name('pengeluaran.export_excel');
+    Route::resource('pengeluaran', PengeluaranController::class);
+
+    // Kasbon
+    Route::get('/kasbon', [KasbonController::class, 'index'])->name('kasbon.index');
+    Route::get('/kasbon/create', [KasbonController::class, 'create'])->name('kasbon.create');
+    Route::post('/kasbon', [KasbonController::class, 'store'])->name('kasbon.store');
+    Route::get('/kasbon/{kasbon}/cetak', [KasbonController::class, 'cetakStruk'])->name('kasbon.cetak');
+
+    // Gaji
+    Route::get('/gaji', [GajiController::class, 'index'])->name('gaji.index');
+    Route::get('/gaji/history', [GajiController::class, 'history'])->name('gaji.history');
+    Route::get('/gaji/history/export-pdf', [GajiController::class, 'exportHistoryPdf'])->name('gaji.history.export_pdf');
+    Route::post('/gaji/generate', [GajiController::class, 'generate'])->name('gaji.generate');
+    Route::post('/gaji/{penggajian}/bayar', [GajiController::class, 'bayar'])->name('gaji.bayar');
+    Route::get('/gaji/{penggajian}/edit', [GajiController::class, 'edit'])->name('gaji.edit');
+    Route::put('/gaji/{penggajian}', [GajiController::class, 'update'])->name('gaji.update');
+    Route::get('/gaji/{penggajian}/cetak', [GajiController::class, 'cetakStruk'])->name('gaji.cetak');
     
-    Route::get('transaksi', [TransaksiController::class, 'index'])->name('transaksi.index');
-    Route::get('transaksi/{transaksi}', [TransaksiController::class, 'show'])->name('transaksi.show');
-    Route::get('transaksi/{transaksi}/cetak-struk', [TransaksiController::class, 'cetakStruk'])->name('transaksi.cetak_struk');
+    // Pengaturan Gaji
+    Route::get('/pengaturan-gaji', [GajiController::class, 'settingIndex'])->name('gaji.setting.index');
+    Route::post('/pengaturan-gaji', [GajiController::class, 'settingStore'])->name('gaji.setting.store');
 
 
     // ===========================================
     // GROUP: ADMIN & KASIR (Akses POS/Input Transaksi)
     // ===========================================
 
-    Route::middleware([\App\Http\Middleware\CheckRoleMiddleware::class . ':admin,kasir'])->group(function () {
+    // MANAJEMEN SHIFT (Buka/Tutup Kasir)
+    Route::get('shift/open', [ShiftController::class, 'openIndex'])->name('shift.open.index');
+    Route::post('shift/open', [ShiftController::class, 'openStore'])->name('shift.open.store');
+    Route::get('shift/close', [ShiftController::class, 'closeIndex'])->name('shift.close.index');
+    Route::post('shift/close', [ShiftController::class, 'closeStore'])->name('shift.close.store');
+    Route::get('shift/history', [ShiftController::class, 'history'])->name('shift.history');
+
+    Route::middleware([\App\Http\Middleware\CheckRoleMiddleware::class . ':admin,kasir', 'shift.opened'])->group(function () {
         Route::get('pos/{transaksi?}', [PosController::class, 'index'])->name('pos.index');
         Route::get('pos-new-draft', [PosController::class, 'buatDraftBaru'])->name('pos.new_draft');
         Route::get('pos-search-member', [PosController::class, 'searchMember'])->name('pos.search_member'); 
@@ -212,6 +248,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('pos/payment-success/{transaksi}', [PosController::class, 'handlePaymentSuccess'])->name('pos.payment_success');
         Route::get('pos/cancel-pending/{transaksi}', [PosController::class, 'cancelPendingTransaction'])->name('pos.cancel_pending');
         Route::get('pos/check-status/{transaksi}', [PosController::class, 'checkStatus'])->name('pos.check_status');
+        Route::post('pos/split-bill', [PosController::class, 'splitBill'])->name('pos.split_bill');
         Route::post('pos/check-voucher', [PosController::class, 'checkVoucher'])->name('pos.check_voucher');
     });
 

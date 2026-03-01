@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Transaksi;
 use App\Models\Setting;
+use App\Models\User;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request; 
 use Carbon\Carbon; 
 
@@ -12,12 +14,24 @@ class TransaksiController extends Controller
 {
     public function index(Request $request)
     {
+        $user = Auth::user();
         $search = $request->query('search');
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
+        $kasirId = $request->query('kasir_id');
 
         $query = Transaksi::with(['kasir', 'pelanggan'])
                           ->where('status', 'selesai');
+
+        // ROLE CHECK: Kasir hanya bisa lihat transaksi miliknya sendiri
+        if ($user->role === 'kasir') {
+            $query->where('kasir_id', $user->id);
+        } else {
+            // Admin/Owner bisa filter berdasarkan Kasir tertentu
+            if ($kasirId) {
+                $query->where('kasir_id', $kasirId);
+            }
+        }
 
         if ($search) {
             $query->where(function($q) use ($search) {
@@ -39,16 +53,20 @@ class TransaksiController extends Controller
             } catch (\Exception $e) {
             }
         }
-        $transaksis = $query->orderBy('id', 'asc')
-                            ->paginate(5)
+        $transaksis = $query->orderBy('id', 'desc') // Diubah ke desc agar yang terbaru di atas
+                            ->paginate(10)
                             ->withQueryString(); 
         
-        // 6. Kirim data ke view
+        // Ambil daftar kasir untuk filter Admin (Role 'kasir' atau semua user)
+        $kasirs = ($user->role !== 'kasir') ? User::where('role', 'kasir')->get() : collect();
+
         return view('transaksi.index', compact(
             'transaksis', 
             'search',     
             'startDate', 
-            'endDate'
+            'endDate',
+            'kasirId',
+            'kasirs'
         ));
     }
     public function show(Transaksi $transaksi)

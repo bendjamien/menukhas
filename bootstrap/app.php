@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
         
         $middleware->alias([
             'not.clocked.out' => \App\Http\Middleware\EnsureUserHasNotClockedOut::class,
+            'shift.opened' => \App\Http\Middleware\EnsureShiftIsOpened::class,
         ]);
 
         $middleware->validateCsrfTokens(except: [

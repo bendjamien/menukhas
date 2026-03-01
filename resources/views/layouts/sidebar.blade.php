@@ -138,6 +138,42 @@
         </div>
         @endif
 
+        <!-- MANAJEMEN KEUANGAN (Dropdown) -->
+        @if(Auth::user()->role == 'admin' || Auth::user()->role == 'owner')
+        <div x-data="{ open: {{ (request()->is('pengeluaran*') || request()->is('gaji*') || request()->is('kasbon*') || request()->is('pengaturan-gaji*')) ? 'true' : 'false' }} }" class="{{ $isLocked ? 'opacity-50 pointer-events-none grayscale' : '' }}">
+            <button @click="open = !open"
+                    class="group relative flex items-center justify-between w-full px-4 py-3 text-sm font-medium rounded-2xl transition-all duration-200
+                           {{ (request()->is('pengeluaran*') || request()->is('gaji*') || request()->is('kasbon*') || request()->is('pengaturan-gaji*')) 
+                              ? 'bg-sky-50 text-sky-700' 
+                              : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
+                <div class="flex items-center">
+                    <svg class="flex-shrink-0 w-5 h-5 transition-colors duration-200 {{ (request()->is('pengeluaran*') || request()->is('gaji*') || request()->is('kasbon*') || request()->is('pengaturan-gaji*')) ? 'text-sky-600' : 'text-gray-400 group-hover:text-gray-600' }}"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span class="ml-3">Manajemen Keuangan</span>
+                </div>
+                <svg class="w-4 h-4 transition-transform duration-200 text-gray-400" :class="{ 'rotate-180': open }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+            
+            <div x-show="open" x-transition.origin.top class="mt-1 space-y-1 pl-11 pr-2">
+                <a href="{{ route('pengeluaran.index') }}" class="block px-3 py-2 rounded-xl text-sm transition-colors {{ request()->is('pengeluaran*') ? 'text-sky-600 bg-sky-50 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50' }}">
+                    Pengeluaran
+                </a>
+                <a href="{{ route('gaji.index') }}" class="block px-3 py-2 rounded-xl text-sm transition-colors {{ request()->is('gaji*') && !request()->is('gaji/history*') && !request()->is('pengaturan-gaji*') ? 'text-sky-600 bg-sky-50 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50' }}">
+                    Gaji Karyawan
+                </a>
+                <a href="{{ route('gaji.history') }}" class="block px-3 py-2 rounded-xl text-sm transition-colors {{ request()->is('gaji/history*') ? 'text-sky-600 bg-sky-50 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50' }}">
+                    Riwayat Penggajian
+                </a>
+                <a href="{{ route('kasbon.index') }}" class="block px-3 py-2 rounded-xl text-sm transition-colors {{ request()->is('kasbon*') ? 'text-sky-600 bg-sky-50 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50' }}">
+                    Kasbon Karyawan
+                </a>
+                <a href="{{ route('gaji.setting.index') }}" class="block px-3 py-2 rounded-xl text-sm transition-colors {{ request()->is('pengaturan-gaji*') ? 'text-sky-600 bg-sky-50 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50' }}">
+                    Atur Gaji Pokok
+                </a>
+            </div>
+        </div>
+        @endif
+
         <!-- LAPORAN (Dropdown) -->
         <div x-data="{ open: {{ (request()->is('transaksi*') || request()->is('stok-log*') || request()->is('pembayaran*') || request()->is('laporan*') || (Auth::user()->role == 'owner' && request()->is('pelanggan*'))) ? 'true' : 'false' }} }" class="{{ $isLocked ? 'opacity-50 pointer-events-none grayscale' : '' }}">
             <button @click="open = !open"
@@ -163,6 +199,9 @@
                     </a>
                     <a href="{{ route('laporan.absensi') }}" class="block px-3 py-2 rounded-xl text-sm transition-colors {{ request()->is('laporan/absensi*') ? 'text-sky-600 bg-sky-50 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50' }}">
                         Laporan Absensi
+                    </a>
+                    <a href="{{ route('shift.history') }}" class="block px-3 py-2 rounded-xl text-sm transition-colors {{ request()->is('shift/history*') ? 'text-sky-600 bg-sky-50 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50' }}">
+                        Riwayat Shift & Selisih
                     </a>
                     <a href="{{ route('stok_log.index') }}" class="block px-3 py-2 rounded-xl text-sm transition-colors {{ request()->is('stok-log*') ? 'text-sky-600 bg-sky-50 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50' }}">
                         Log Stok Barang

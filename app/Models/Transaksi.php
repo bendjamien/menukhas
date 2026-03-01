@@ -29,6 +29,15 @@ class Transaksi extends Model
         'status',
     ];
 
+    protected $casts = [
+        'tanggal' => 'datetime',
+        'total' => 'decimal:2',
+        'diskon' => 'decimal:2',
+        'pajak' => 'decimal:2',
+        'nominal_bayar' => 'decimal:2',
+        'kembalian' => 'decimal:2',
+    ];
+
     public function kasir(): BelongsTo
     {
         return $this->belongsTo(User::class, 'kasir_id');

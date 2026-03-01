@@ -29,6 +29,8 @@
             input[type=number] {
                 -moz-appearance: textfield;
             }
+
+            [x-cloak] { display: none !important; }
         </style>
     </head>
     <body class="font-sans antialiased text-gray-900 bg-gray-100">

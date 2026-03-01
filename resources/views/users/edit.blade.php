@@ -58,6 +58,27 @@
                 </div>
             </div>
 
+            <!-- JADWAL SHIFT KERJA -->
+            <div class="border-t pt-4">
+                <p class="text-sm font-bold text-gray-800 mb-3 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Jadwal Shift Kerja
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-sky-50 p-4 rounded-xl border border-sky-100">
+                    <div>
+                        <label for="jam_masuk" class="block text-xs font-black text-sky-700 uppercase tracking-widest mb-1">Jam Masuk</label>
+                        <input type="time" name="jam_masuk" id="jam_masuk" value="{{ old('jam_masuk', \Carbon\Carbon::parse($user->jam_masuk)->format('H:i')) }}" 
+                               class="w-full border-gray-200 rounded-lg focus:ring-sky-500 focus:border-sky-500 text-sm font-bold">
+                    </div>
+                    <div>
+                        <label for="jam_pulang" class="block text-xs font-black text-sky-700 uppercase tracking-widest mb-1">Jam Pulang (Tutup Kasir)</label>
+                        <input type="time" name="jam_pulang" id="jam_pulang" value="{{ old('jam_pulang', \Carbon\Carbon::parse($user->jam_pulang)->format('H:i')) }}" 
+                               class="w-full border-gray-200 rounded-lg focus:ring-sky-500 focus:border-sky-500 text-sm font-bold">
+                    </div>
+                    <p class="md:col-span-2 text-[10px] text-sky-600 font-medium italic">Kasir tidak dapat menutup shift sebelum Jam Pulang, kecuali dalam kondisi darurat.</p>
+                </div>
+            </div>
+
             <div class="border-t pt-4 space-y-2">
                 <p class="text-sm font-medium text-gray-700">Ubah Password (Opsional)</p>
                 <p class="text-xs text-gray-500">Kosongkan jika Anda tidak ingin mengubah password.</p>

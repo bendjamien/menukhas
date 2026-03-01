@@ -31,6 +31,8 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users,email',
             'role' => ['required', Rule::in(['admin', 'kasir', 'owner'])],
             'status' => 'required|boolean',
+            'jam_masuk' => 'required',
+            'jam_pulang' => 'required',
             'password' => ['required', 'confirmed', Password::min(8)],
         ]);
 
@@ -40,6 +42,8 @@ class UserController extends Controller
             'email' => $validated['email'],
             'role' => $validated['role'],
             'status' => $validated['status'],
+            'jam_masuk' => $validated['jam_masuk'],
+            'jam_pulang' => $validated['jam_pulang'],
             'password' => Hash::make($validated['password']),
         ]);
 
@@ -59,6 +63,8 @@ class UserController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users')->ignore($user->id)],
             'role' => ['required', Rule::in(['admin', 'kasir', 'owner'])],
             'status' => 'required|boolean',
+            'jam_masuk' => 'required',
+            'jam_pulang' => 'required',
             'password' => ['nullable', 'confirmed', Password::min(8)], 
         ]);
 
@@ -68,6 +74,8 @@ class UserController extends Controller
             'email' => $validated['email'],
             'role' => $validated['role'],
             'status' => $validated['status'],
+            'jam_masuk' => $validated['jam_masuk'],
+            'jam_pulang' => $validated['jam_pulang'],
         ];
 
         if (!empty($validated['password'])) {

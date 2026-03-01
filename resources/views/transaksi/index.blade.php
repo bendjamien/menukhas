@@ -5,7 +5,11 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
                 <h1 class="text-3xl font-black text-slate-800 tracking-tight">Riwayat Transaksi</h1>
-                <p class="text-slate-500 text-sm mt-1">Pantau semua aktivitas penjualan toko Anda.</p>
+                @if(Auth::user()->role === 'kasir')
+                    <p class="text-sky-600 text-xs font-bold uppercase tracking-widest mt-1">Data Transaksi Anda</p>
+                @else
+                    <p class="text-slate-500 text-sm mt-1">Pantau semua aktivitas penjualan toko Anda.</p>
+                @endif
             </div>
             
             <!-- Quick Stats (Optional, adds professional feel) -->
@@ -28,11 +32,23 @@
                         </label>
                         <div class="relative">
                             <input type="search" name="search" id="search" value="{{ $search ?? '' }}" 
-                                   placeholder="Cari ID, nama kasir, atau pelanggan..."
+                                   placeholder="Cari ID atau pelanggan..."
                                    class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition-all text-sm font-medium placeholder-slate-400">
                             <svg class="w-5 h-5 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                         </div>
                     </div>
+
+                    @if(Auth::user()->role !== 'kasir')
+                    <div class="w-full lg:w-48">
+                        <label for="kasir_id" class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Kasir</label>
+                        <select name="kasir_id" id="kasir_id" class="w-full py-2.5 px-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500 text-sm font-medium text-slate-600">
+                            <option value="">Semua Kasir</option>
+                            @foreach($kasirs as $k)
+                                <option value="{{ $k->id }}" {{ $kasirId == $k->id ? 'selected' : '' }}>{{ $k->name }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    @endif
 
                     <div class="w-full lg:w-auto flex gap-4">
                         <div>

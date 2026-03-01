@@ -24,6 +24,8 @@ class User extends Authenticatable
         'username',
         'no_hp',   
         'role',
+        'jam_masuk',
+        'jam_pulang',
         'status',
         'pin',
         'request_new_pin',
@@ -56,6 +58,11 @@ class User extends Authenticatable
 
     public function absensis()
     {
-        return $this->hasMany(Absensi::class);
+        return $this->hasMany(Absensis::class);
+    }
+
+    public function pengaturanGaji()
+    {
+        return $this->hasOne(PengaturanGaji::class);
     }
 }
