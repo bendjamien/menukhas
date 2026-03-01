@@ -10,7 +10,7 @@ class KategoriController extends Controller
 
     public function index()
     {
-        $kategoris = Kategori::orderBy('id', 'asc')->paginate(10);
+        $kategoris = Kategori::withCount('produks')->orderBy('id', 'asc')->paginate(10);
         
         return view('kategori.index', compact('kategoris'));
     }

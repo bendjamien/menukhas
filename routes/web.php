@@ -299,9 +299,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         
         Route::resource('users', UserController::class);
         Route::get('users/{id}/cetak-kartu', [UserController::class, 'cetakKartu'])->name('users.cetak_kartu');
+        Route::post('users/{user}/view-pin', [UserController::class, 'viewPin'])->name('users.view_pin');
         Route::patch('users/{user}/approve-pin', [UserController::class, 'approvePin'])->name('users.approve_pin');
         Route::patch('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
-        Route::post('users/{user}/view-pin', [UserController::class, 'viewPin'])->name('users.view_pin');
         Route::post('users/{user}/reset-pin', [UserController::class, 'resetPin'])->name('users.reset_pin');
         
         Route::post('vouchers', [VoucherController::class, 'store'])->name('vouchers.store');

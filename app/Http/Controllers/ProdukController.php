@@ -62,22 +62,26 @@ class ProdukController extends Controller
     public function index(Request $request) 
     {
         $search = $request->query('search');
+        $kategoriId = $request->query('kategori');
 
         $query = Produk::with('kategori');
 
         if ($search) {
             $query->where(function($q) use ($search) {
                 $q->where('nama_produk', 'like', "%{$search}%")
-                  ->orWhere('kode_barcode', 'like', "%{$search}%")
-                  ->orWhereHas('kategori', function($subQ) use ($search) {
-                      $subQ->where('nama', 'like', "%{$search}%");
-                  });
+                  ->orWhere('kode_barcode', 'like', "%{$search}%");
             });
         }
 
-        $produks = $query->orderBy('stok', 'asc') // Urutkan stok terkecil dulu agar admin aware
+        if ($kategoriId) {
+            $query->where('kategori_id', $kategoriId);
+        }
+
+        $produks = $query->orderBy('stok', 'asc')
                          ->paginate(10)
                          ->withQueryString(); 
+
+        $kategoris = Kategori::all();
 
         // Statistik untuk Header Dashboard Stok
         $totalProduk = Produk::count();
@@ -88,7 +92,7 @@ class ProdukController extends Controller
         
         $stokHabis = Produk::where('stok', 0)->count();
         
-        return view('produk.index', compact('produks', 'search', 'totalProduk', 'totalAset', 'stokMenipis', 'stokHabis', 'batasStokMenipis'));
+        return view('produk.index', compact('produks', 'search', 'kategoris', 'totalProduk', 'totalAset', 'stokMenipis', 'stokHabis', 'batasStokMenipis'));
     }
 
  
