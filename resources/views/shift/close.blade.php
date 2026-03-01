@@ -1,91 +1,68 @@
 <x-app-layout>
-    <div class="py-12">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
+    <div class="py-12 min-h-[calc(100vh-100px)] flex flex-col justify-center bg-slate-50/50">
+        <div class="max-w-xl mx-auto px-4 w-full">
             
-            <!-- Header Section -->
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 px-4 sm:px-0">
-                <div>
-                    <h1 class="text-3xl font-black text-slate-800 tracking-tight">Tutup Kasir</h1>
-                    <p class="text-slate-500 text-sm mt-1 uppercase tracking-widest font-bold">Laporan Akhir Shift & Hitung Uang Laci</p>
-                </div>
-                <a href="{{ route('pos.index') }}" class="inline-flex items-center gap-2 px-6 py-3 bg-white border border-slate-200 text-slate-600 font-bold rounded-xl hover:bg-slate-50 transition-all text-sm shadow-sm w-fit">
-                    Kembali ke POS
-                </a>
+            <!-- Compact Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-2xl font-black text-slate-800 tracking-tight mb-1">Tutup Kasir</h1>
+                <p class="text-slate-400 text-[10px] uppercase tracking-[0.3em] font-bold">Laporan Akhir Shift</p>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                <!-- Left: Ringkasan Info -->
-                <div class="lg:col-span-5 px-4 sm:px-0 space-y-6">
-                    <div class="bg-slate-900 rounded-[2.5rem] p-8 md:p-10 text-white shadow-2xl relative overflow-hidden">
-                        <div class="relative z-10">
-                            <h2 class="text-2xl font-black uppercase tracking-tight italic mb-8 text-sky-400">Ringkasan Shift</h2>
-                            
-                            <div class="space-y-6">
-                                <div class="flex justify-between items-center border-b border-white/10 pb-4">
-                                    <span class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Modal Awal</span>
-                                    <span class="text-lg font-mono font-bold">Rp {{ number_format($shift->saldo_awal, 0, ',', '.') }}</span>
-                                </div>
-                                
-                                <div class="flex justify-between items-center border-b border-white/10 pb-4">
-                                    <span class="text-[10px] text-slate-400 font-black uppercase tracking-widest">Penjualan Tunai</span>
-                                    <span class="text-lg font-mono font-bold text-emerald-400">+ Rp {{ number_format($totalTunaiPenjualan, 0, ',', '.') }}</span>
-                                </div>
-
-                                <div class="pt-4">
-                                    <span class="text-[10px] text-sky-400 font-black uppercase tracking-[0.2em] block mb-2">Estimasi Saldo Laci</span>
-                                    <div class="text-4xl font-black italic tracking-tighter">
-                                        <span class="text-xl not-italic font-medium text-slate-500 mr-1">Rp</span>{{ number_format($diharapkan, 0, ',', '.') }}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+            <div class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/40 border border-slate-100 overflow-hidden">
+                <!-- Slim Summary Bar -->
+                <div class="bg-slate-900 px-6 py-6 text-white grid grid-cols-3 gap-2">
+                    <div class="text-center border-r border-white/10 px-2">
+                        <span class="text-[8px] text-slate-400 font-black uppercase tracking-widest block mb-1">Modal</span>
+                        <span class="text-xs font-bold">{{ number_format($shift->saldo_awal, 0, ',', '.') }}</span>
                     </div>
-
-                    <div class="p-6 bg-white rounded-3xl border border-slate-100 shadow-sm">
-                        <div class="flex gap-4">
-                            <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center shrink-0">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                            </div>
-                            <p class="text-xs leading-relaxed text-slate-500 font-medium">
-                                Mohon hitung uang fisik di laci kasir dengan teliti. Selisih akan dicatat permanen dalam riwayat.
-                            </p>
-                        </div>
+                    <div class="text-center border-r border-white/10 px-2">
+                        <span class="text-[8px] text-slate-400 font-black uppercase tracking-widest block mb-1">Sales</span>
+                        <span class="text-xs font-bold text-emerald-400">{{ number_format($totalTunaiPenjualan, 0, ',', '.') }}</span>
+                    </div>
+                    <div class="text-center px-2">
+                        <span class="text-[8px] text-sky-400 font-black uppercase tracking-widest block mb-1">Target</span>
+                        <span class="text-xs font-black text-sky-400">{{ number_format($diharapkan, 0, ',', '.') }}</span>
                     </div>
                 </div>
 
-                <!-- Right: Form Input -->
-                <div class="lg:col-span-7 px-4 sm:px-0">
-                    <div class="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 p-8 md:p-12">
-                        <form action="{{ route('shift.close.store') }}" method="POST" class="space-y-8">
-                            @csrf
-                            <div>
-                                <label for="total_tunai_aktual" class="block text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-6 px-1">
-                                    Total Uang Fisik di Laci (Rp)
-                                </label>
-                                <div class="relative group">
-                                    <div class="absolute inset-y-0 left-0 pl-8 flex items-center pointer-events-none">
-                                        <span class="text-3xl font-black text-slate-300">Rp</span>
-                                    </div>
-                                    <input type="number" name="total_tunai_aktual" id="total_tunai_aktual" required autofocus
-                                           class="w-full bg-slate-50 border-2 border-slate-100 rounded-[2.5rem] py-10 pl-24 pr-10 text-5xl font-black text-slate-800 focus:ring-8 focus:ring-emerald-500/5 focus:border-emerald-500 transition-all text-right shadow-inner" 
-                                           placeholder="0">
+                <form action="{{ route('shift.close.store') }}" method="POST">
+                    @csrf
+                    <div class="p-8 md:p-10 space-y-8">
+                        
+                        <div class="space-y-4">
+                            <label for="total_tunai_aktual" class="block text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">
+                                Hitung Uang Fisik (Rp)
+                            </label>
+                            <div class="relative group">
+                                <div class="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
+                                    <span class="text-xl font-black text-slate-300 transition-colors group-focus-within:text-emerald-500">Rp</span>
                                 </div>
+                                <input type="number" name="total_tunai_aktual" id="total_tunai_aktual" required autofocus
+                                       class="w-full bg-slate-50 border-none rounded-2xl py-8 pl-16 pr-6 text-4xl font-black text-slate-800 focus:ring-4 focus:ring-emerald-500/5 text-right shadow-inner placeholder-slate-200" 
+                                       placeholder="0">
                             </div>
+                        </div>
 
-                            <div>
-                                <label for="catatan" class="block text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-4 px-1">Catatan Tambahan (Opsional)</label>
-                                <textarea name="catatan" id="catatan" rows="3" 
-                                          class="w-full bg-slate-50 border-2 border-slate-100 rounded-3xl py-5 px-6 text-sm font-medium text-slate-700 focus:ring-8 focus:ring-sky-500/5 focus:border-sky-500 transition-all shadow-inner placeholder-slate-300"
-                                          placeholder="Tulis alasan jika ada selisih..."></textarea>
-                            </div>
+                        <div>
+                            <label for="catatan" class="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Catatan (Opsional)</label>
+                            <textarea name="catatan" id="catatan" rows="2" 
+                                      class="w-full bg-slate-50 border-none rounded-xl py-4 px-5 text-sm font-medium text-slate-700 focus:ring-0 shadow-inner placeholder-slate-300"
+                                      placeholder="Alasan selisih jika ada..."></textarea>
+                        </div>
 
-                            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-6 rounded-2xl shadow-xl shadow-emerald-500/20 transition-all transform hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-4 uppercase tracking-widest">
-                                Tutup & Simpan Laporan
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <div class="flex flex-col items-center gap-6">
+                            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-5 rounded-2xl shadow-xl transition-all transform hover:-translate-y-1 active:scale-95 flex items-center justify-center gap-3 uppercase tracking-widest text-xs">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                Simpan & Tutup Laporan
                             </button>
-                        </form>
+                            
+                            <a href="{{ route('pos.index') }}" class="text-slate-400 hover:text-slate-600 text-[9px] font-black uppercase tracking-widest transition-colors flex items-center gap-2">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                                Kembali ke POS
+                            </a>
+                        </div>
                     </div>
-                </div>
+                </form>
             </div>
         </div>
     </div>
