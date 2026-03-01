@@ -24,6 +24,7 @@ use App\Http\Controllers\ShiftController;
 use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\GajiController;
 use App\Http\Controllers\KasbonController;
+use App\Http\Controllers\KaryawanController;
 use Illuminate\Support\Facades\Route;
 
 // ===========================================
@@ -219,6 +220,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Pengaturan Gaji
     Route::get('/pengaturan-gaji', [GajiController::class, 'settingIndex'])->name('gaji.setting.index');
     Route::post('/pengaturan-gaji', [GajiController::class, 'settingStore'])->name('gaji.setting.store');
+
+    // Manajemen Karyawan (Master Data Karyawan selain Kasir/Admin)
+    Route::resource('karyawan', KaryawanController::class);
 
 
     // ===========================================

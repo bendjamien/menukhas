@@ -24,6 +24,7 @@ class User extends Authenticatable
         'username',
         'no_hp',   
         'role',
+        'jabatan',
         'jam_masuk',
         'jam_pulang',
         'status',

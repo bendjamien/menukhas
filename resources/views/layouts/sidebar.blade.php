@@ -108,14 +108,14 @@
 
         <!-- MASTER DATA (Dropdown) -->
         @if(Auth::user()->role !== 'owner')
-        <div x-data="{ open: {{ (request()->is('pelanggan*') || request()->is('kategori*') || request()->is('produk*')) ? 'true' : 'false' }} }" class="{{ $isLocked ? 'opacity-50 pointer-events-none grayscale' : '' }}">
+        <div x-data="{ open: {{ (request()->is('pelanggan*') || request()->is('karyawan*') || request()->is('kategori*') || request()->is('produk*')) ? 'true' : 'false' }} }" class="{{ $isLocked ? 'opacity-50 pointer-events-none grayscale' : '' }}">
             <button @click="open = !open"
                     class="group relative flex items-center justify-between w-full px-4 py-3 text-sm font-medium rounded-2xl transition-all duration-200
-                           {{ (request()->is('pelanggan*') || request()->is('kategori*') || request()->is('produk*')) 
+                           {{ (request()->is('pelanggan*') || request()->is('karyawan*') || request()->is('kategori*') || request()->is('produk*')) 
                               ? 'bg-sky-50 text-sky-700' 
                               : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
                 <div class="flex items-center">
-                    <svg class="flex-shrink-0 w-5 h-5 transition-colors duration-200 {{ (request()->is('pelanggan*') || request()->is('kategori*') || request()->is('produk*')) ? 'text-sky-600' : 'text-gray-400 group-hover:text-gray-600' }}"
+                    <svg class="flex-shrink-0 w-5 h-5 transition-colors duration-200 {{ (request()->is('pelanggan*') || request()->is('karyawan*') || request()->is('kategori*') || request()->is('produk*')) ? 'text-sky-600' : 'text-gray-400 group-hover:text-gray-600' }}"
                          fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                     <span class="ml-3">Manajemen Data</span>
                 </div>
@@ -125,6 +125,9 @@
             <div x-show="open" x-transition.origin.top class="mt-1 space-y-1 pl-11 pr-2">
                 <a href="{{ route('pelanggan.index') }}" class="block px-3 py-2 rounded-xl text-sm transition-colors {{ request()->is('pelanggan*') ? 'text-sky-600 bg-sky-50 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50' }}">
                     Pelanggan
+                </a>
+                <a href="{{ route('karyawan.index') }}" class="block px-3 py-2 rounded-xl text-sm transition-colors {{ request()->is('karyawan*') ? 'text-sky-600 bg-sky-50 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50' }}">
+                    Karyawan
                 </a>
                 @if(Auth::user()->role == 'admin')
                     <a href="{{ route('kategori.index') }}" class="block px-3 py-2 rounded-xl text-sm transition-colors {{ request()->is('kategori*') ? 'text-sky-600 bg-sky-50 font-medium' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50' }}">

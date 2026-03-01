@@ -22,7 +22,7 @@ class GajiController extends Controller
 
         $penggajians = Penggajian::with('user')
             ->whereHas('user', function($q) {
-                $q->where('role', 'kasir');
+                $q->whereIn('role', ['kasir', 'karyawan']);
             })
             ->where('bulan', $bulan)
             ->where('tahun', $tahun)
@@ -38,7 +38,7 @@ class GajiController extends Controller
 
         $query = Penggajian::with('user')
             ->whereHas('user', function($q) {
-                $q->where('role', 'kasir');
+                $q->whereIn('role', ['kasir', 'karyawan']);
             })
             ->where('status_bayar', 'dibayar');
 
@@ -67,7 +67,7 @@ class GajiController extends Controller
 
         $query = Penggajian::with('user')
             ->whereHas('user', function($q) {
-                $q->where('role', 'kasir');
+                $q->whereIn('role', ['kasir', 'karyawan']);
             })
             ->where('status_bayar', 'dibayar');
 
@@ -109,7 +109,7 @@ class GajiController extends Controller
             return back()->with('toast_danger', 'Tidak dapat generate gaji untuk periode masa depan.');
         }
 
-        $users = User::where('role', 'kasir')->get();
+        $users = User::whereIn('role', ['kasir', 'karyawan'])->get();
 
         try {
             DB::beginTransaction();
@@ -206,7 +206,7 @@ class GajiController extends Controller
     // MANAJEMEN PENGATURAN GAJI
     public function settingIndex()
     {
-        $users = User::where('role', 'kasir')->get();
+        $users = User::whereIn('role', ['kasir', 'karyawan'])->get();
         $settings = PengaturanGaji::with('user')->get();
         return view('gaji.setting', compact('users', 'settings'));
     }
