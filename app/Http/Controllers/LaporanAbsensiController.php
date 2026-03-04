@@ -17,8 +17,9 @@ class LaporanAbsensiController extends Controller
         $bulan = $request->input('bulan', date('m'));
         $tahun = $request->input('tahun', date('Y'));
 
-        // Ambil hanya user dengan role kasir
-        $users = User::where('role', 'kasir')
+        // Ambil semua user kecuali owner yang aktif
+        $users = User::where('role', '!=', 'owner')
+                     ->where('status', true)
                      ->with(['absensis' => function($query) use ($bulan, $tahun) {
                          $query->whereMonth('tanggal', $bulan)
                                ->whereYear('tanggal', $tahun);
