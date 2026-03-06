@@ -1,11 +1,60 @@
 <x-app-layout>
     <div class="space-y-8" x-data="{ 
         showPayModal: false, 
+        payStep: 'form', // form, review, success
+        selectedMetode: 'Tunai',
         selectedGaji: null,
         userBank: '',
         userRek: '',
         userName: '',
-        payUrl: ''
+        payUrl: '',
+        isProcessing: false,
+
+        async submitPayment() {
+            if (this.selectedMetode === 'Transfer' && this.payStep === 'form') {
+                this.payStep = 'review';
+                return;
+            }
+
+            this.isProcessing = true;
+            const formData = new FormData();
+            formData.append('metode_bayar', this.selectedMetode);
+
+            try {
+                const response = await fetch(this.payUrl, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=&quot;csrf-token&quot;]').getAttribute('content')
+                    }
+                });
+
+                if (!response.ok) throw new Error('Gagal menghubungi server');
+                const data = await response.json();
+
+                if (data.status === 'success') {
+                    this.payStep = 'success';
+                    this.isProcessing = false;
+                } else {
+                    alert(data.message || 'Terjadi kesalahan');
+                    this.isProcessing = false;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan koneksi atau server.');
+                this.isProcessing = false;
+            }
+        },
+
+        resetModal() {
+            this.showPayModal = false;
+            setTimeout(() => {
+                this.payStep = 'form';
+                this.selectedMetode = 'Tunai';
+                this.isProcessing = false;
+            }, 300);
+        }
     }">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -84,6 +133,7 @@
                                             </a>
                                             <button type="button" 
                                                     @click="showPayModal = true; 
+                                                            payStep = 'form';
                                                             userName = '{{ $g->user->name }}';
                                                             userBank = '{{ $g->user->pengaturanGaji->bank ?? '' }}';
                                                             userRek = '{{ $g->user->pengaturanGaji->nomor_rekening ?? '' }}';
@@ -115,7 +165,7 @@
         <div x-show="showPayModal" 
              class="fixed inset-0 z-[99] flex items-center justify-center px-4" 
              x-cloak>
-            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="showPayModal = false"></div>
+            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" @click="resetModal()"></div>
             
             <div class="relative bg-white w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden"
                  x-show="showPayModal"
@@ -123,71 +173,114 @@
                  x-transition:enter-start="opacity-0 scale-95"
                  x-transition:enter-end="opacity-100 scale-100">
                 
-                <div class="p-8 md:p-10">
+                <!-- STEP 1: PILIH METODE -->
+                <div class="p-8 md:p-10" x-show="payStep === 'form'">
                     <div class="text-center mb-8">
                         <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
                             <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                         </div>
-                        <h3 class="text-2xl font-black text-slate-800">Konfirmasi Pembayaran</h3>
-                        <p class="text-slate-500 font-medium mt-1">Anda akan membayarkan gaji untuk <span class="text-slate-800 font-bold" x-text="userName"></span></p>
+                        <h3 class="text-2xl font-black text-slate-800">Bayar Gaji Karyawan</h3>
+                        <p class="text-slate-500 font-medium mt-1">Pilih metode pembayaran untuk <span class="text-slate-800 font-bold" x-text="userName"></span></p>
                     </div>
 
                     <div class="bg-slate-50 rounded-3xl p-6 mb-8 border border-slate-100">
-                        <div class="flex justify-between items-center mb-4">
+                        <div class="flex justify-between items-center">
                             <span class="text-xs font-black text-slate-400 uppercase tracking-widest">Total Gaji</span>
                             <span class="text-2xl font-black text-emerald-600" x-text="selectedGaji"></span>
                         </div>
-                        
-                        <template x-if="userBank">
-                            <div class="border-t border-slate-200 pt-4 mt-4">
-                                <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Rekening Terdaftar</span>
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-sm border border-slate-100 font-black text-xs text-sky-600" x-text="userBank"></div>
-                                    <span class="text-lg font-mono font-bold text-slate-700" x-text="userRek"></span>
-                                </div>
-                            </div>
-                        </template>
                     </div>
 
-                    <form :action="payUrl" method="POST">
-                        @csrf
-                        <div class="space-y-4">
-                            <label class="block text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Pilih Metode Pembayaran</label>
-                            <div class="grid grid-cols-2 gap-4">
-                                <label class="relative cursor-pointer group">
-                                    <input type="radio" name="metode_bayar" value="Tunai" checked class="peer sr-only">
-                                    <div class="p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-center transition-all peer-checked:border-emerald-500 peer-checked:bg-emerald-50 group-hover:bg-slate-100">
-                                        <span class="block font-black text-slate-800 uppercase tracking-widest text-xs">Tunai</span>
-                                    </div>
-                                </label>
-                                <label class="relative cursor-pointer group">
-                                    <input type="radio" name="metode_bayar" value="Transfer" class="peer sr-only">
-                                    <div class="p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-center transition-all peer-checked:border-emerald-500 peer-checked:bg-emerald-50 group-hover:bg-slate-100">
-                                        <span class="block font-black text-slate-800 uppercase tracking-widest text-xs">Transfer</span>
-                                    </div>
-                                </label>
-                            </div>
+                    <div class="space-y-4">
+                        <label class="block text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Pilih Metode Pembayaran</label>
+                        <div class="grid grid-cols-2 gap-4">
+                            <label class="relative cursor-pointer group">
+                                <input type="radio" x-model="selectedMetode" value="Tunai" class="peer sr-only">
+                                <div class="p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-center transition-all peer-checked:border-emerald-500 peer-checked:bg-emerald-50 group-hover:bg-slate-100">
+                                    <span class="block font-black text-slate-800 uppercase tracking-widest text-xs">Tunai</span>
+                                </div>
+                            </label>
+                            <label class="relative cursor-pointer group">
+                                <input type="radio" x-model="selectedMetode" value="Transfer" class="peer sr-only">
+                                <div class="p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl text-center transition-all peer-checked:border-emerald-500 peer-checked:bg-emerald-50 group-hover:bg-slate-100">
+                                    <span class="block font-black text-slate-800 uppercase tracking-widest text-xs">Transfer</span>
+                                </div>
+                            </label>
+                        </div>
 
-                            <div class="flex gap-4 pt-6">
-                                <button type="button" @click="showPayModal = false" class="flex-1 py-4 bg-slate-100 text-slate-500 font-black rounded-2xl uppercase tracking-widest text-[10px]">Batal</button>
-                                <button type="submit" class="flex-[2] py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl shadow-xl shadow-emerald-500/20 uppercase tracking-widest text-[10px] transition-all">Konfirmasi Bayar</button>
+                        <div class="flex gap-4 pt-6">
+                            <button type="button" @click="resetModal()" class="flex-1 py-4 bg-slate-100 text-slate-500 font-black rounded-2xl uppercase tracking-widest text-[10px]">Batal</button>
+                            <button type="button" @click="submitPayment()" :disabled="isProcessing" class="flex-[2] py-4 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-2xl shadow-xl shadow-emerald-500/20 uppercase tracking-widest text-[10px] transition-all">
+                                <span x-show="!isProcessing">Konfirmasi Bayar</span>
+                                <span x-show="isProcessing">Memproses...</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 2: REVIEW TRANSFER -->
+                <div class="p-8 md:p-10" x-show="payStep === 'review'">
+                    <div class="text-center mb-8">
+                        <div class="w-20 h-20 bg-sky-100 text-sky-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                            <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                        </div>
+                        <h3 class="text-2xl font-black text-slate-800">Cek Rekening</h3>
+                        <p class="text-slate-500 font-medium mt-1">Pastikan Anda telah transfer ke rekening berikut:</p>
+                    </div>
+
+                    <div class="space-y-4 mb-8">
+                        <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Nama Penerima</span>
+                            <span class="text-lg font-black text-slate-800" x-text="userName"></span>
+                        </div>
+                        <div class="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Bank & No. Rekening</span>
+                            <div class="flex items-center gap-3">
+                                <span class="px-2 py-1 bg-sky-600 text-white rounded-md font-black text-[10px]" x-text="userBank || 'BANK'"></span>
+                                <span class="text-xl font-mono font-bold text-slate-700" x-text="userRek || '-'"></span>
                             </div>
                         </div>
-                    </form>
+                        <div class="bg-emerald-50 rounded-2xl p-4 border border-emerald-100">
+                            <span class="text-[10px] font-black text-emerald-600 uppercase tracking-widest block mb-1">Nominal Transfer</span>
+                            <span class="text-xl font-black text-emerald-700" x-text="selectedGaji"></span>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <button type="button" @click="payStep = 'form'" class="flex-1 py-4 bg-slate-100 text-slate-500 font-black rounded-2xl uppercase tracking-widest text-[10px]">Kembali</button>
+                        <button type="button" @click="submitPayment()" :disabled="isProcessing" class="flex-[2] py-4 bg-sky-600 hover:bg-sky-700 text-white font-black rounded-2xl shadow-xl shadow-sky-500/20 uppercase tracking-widest text-[10px] transition-all">
+                            <span x-show="!isProcessing">Selesaikan Pembayaran</span>
+                            <span x-show="isProcessing">Memproses...</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- STEP 3: SUCCESS POPUP -->
+                <div class="p-8 md:p-10 text-center" x-show="payStep === 'success'">
+                    <div class="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <svg class="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                    <h3 class="text-3xl font-black text-slate-800 mb-2">Berhasil!</h3>
+                    <p class="text-slate-500 font-medium mb-8">Pembayaran gaji sebesar <span class="text-slate-800 font-bold" x-text="selectedGaji"></span> telah selesai diproses.</p>
+                    
+                    <button type="button" @click="window.location.reload()" class="w-full py-4 bg-slate-800 hover:bg-black text-white font-black rounded-2xl uppercase tracking-widest text-xs transition-all shadow-lg">
+                        Tutup & Refresh Halaman
+                    </button>
                 </div>
             </div>
         </div>
 
     </div>
 
+    @push('scripts')
     <script>
         function printReceipt(url) {
-            const width = 400;
-            const height = 600;
+            const width = 450;
+            const height = 650;
             const left = (screen.width / 2) - (width / 2);
             const top = (screen.height / 2) - (height / 2);
             
             window.open(url, 'Cetak Struk', `width=${width},height=${height},top=${top},left=${left},toolbar=no,menubar=no,scrollbars=yes,resizable=yes,location=no,status=no`);
         }
     </script>
+    @endpush
 </x-app-layout>

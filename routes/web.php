@@ -212,9 +212,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/gaji/history', [GajiController::class, 'history'])->name('gaji.history');
     Route::get('/gaji/history/export-pdf', [GajiController::class, 'exportHistoryPdf'])->name('gaji.history.export_pdf');
     Route::post('/gaji/generate', [GajiController::class, 'generate'])->name('gaji.generate');
-    Route::post('/gaji/{penggajian}/bayar', [GajiController::class, 'bayar'])->name('gaji.bayar');
     Route::get('/gaji/{penggajian}/edit', [GajiController::class, 'edit'])->name('gaji.edit');
     Route::put('/gaji/{penggajian}', [GajiController::class, 'update'])->name('gaji.update');
+    Route::post('/gaji/{penggajian}/bayar', [GajiController::class, 'bayar'])->name('gaji.bayar');
+    Route::get('/gaji/{penggajian}/payment-success', [GajiController::class, 'handlePaymentSuccess'])->name('gaji.payment_success');
+    Route::get('/gaji/{penggajian}/check-status', [GajiController::class, 'checkStatus'])->name('gaji.check_status');
     Route::get('/gaji/{penggajian}/cetak', [GajiController::class, 'cetakStruk'])->name('gaji.cetak');
     
     // Pengaturan Gaji

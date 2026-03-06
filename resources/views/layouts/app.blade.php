@@ -492,5 +492,6 @@
                 <div x-data x-init="Toastify({ text: `{{ $errors->first() }}`, duration: 3000, gravity: 'top', position: 'right', style: { background: 'linear-gradient(to right, #ef4444, #dc2626)', borderRadius: '0.5rem' } }).showToast();"></div>
             @endif
         
+        @stack('scripts')
     </body>
 </html>

@@ -20,7 +20,7 @@ class KasbonController extends Controller
 
     public function create()
     {
-        $users = User::where('role', '!=', 'owner')->where('status', true)->get();
+        $users = User::whereNotIn('role', ['owner', 'admin'])->where('status', true)->get();
         return view('kasbon.create', compact('users'));
     }
 

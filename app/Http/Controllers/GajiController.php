@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
 use App\Models\Setting;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Midtrans\Config;
+use Midtrans\Snap;
 
 class GajiController extends Controller
 {
@@ -22,7 +24,7 @@ class GajiController extends Controller
 
         $penggajians = Penggajian::with('user')
             ->whereHas('user', function($q) {
-                $q->whereIn('role', ['kasir', 'karyawan', 'admin']);
+                $q->whereIn('role', ['kasir', 'karyawan']);
             })
             ->where('bulan', $bulan)
             ->where('tahun', $tahun)
@@ -38,7 +40,7 @@ class GajiController extends Controller
 
         $query = Penggajian::with('user')
             ->whereHas('user', function($q) {
-                $q->whereIn('role', ['kasir', 'karyawan', 'admin']);
+                $q->whereIn('role', ['kasir', 'karyawan']);
             })
             ->where('status_bayar', 'dibayar');
 
@@ -67,7 +69,7 @@ class GajiController extends Controller
 
         $query = Penggajian::with('user')
             ->whereHas('user', function($q) {
-                $q->whereIn('role', ['kasir', 'karyawan', 'admin']);
+                $q->whereIn('role', ['kasir', 'karyawan']);
             })
             ->where('status_bayar', 'dibayar');
 
@@ -109,22 +111,49 @@ class GajiController extends Controller
             return back()->with('toast_danger', 'Tidak dapat generate gaji untuk periode masa depan.');
         }
 
-        $users = User::whereIn('role', ['kasir', 'karyawan', 'admin'])->get();
+        $users = User::whereIn('role', ['kasir', 'karyawan'])->get();
+        
+        // CEK: Apakah semua karyawan sudah dibayar untuk periode ini?
+        $sudahDibayarCount = Penggajian::whereIn('user_id', $users->pluck('id'))
+            ->where('bulan', $bulan)
+            ->where('tahun', $tahun)
+            ->where('status_bayar', 'dibayar')
+            ->count();
+
+        if ($users->count() > 0 && $sudahDibayarCount === $users->count()) {
+            return back()->with('toast_danger', 'Semua karyawan sudah digaji bulan ini, maka tidak bisa generate lagi. Tunggu bulan yang akan datang.');
+        }
 
         try {
             DB::beginTransaction();
             foreach ($users as $user) {
-                $config = PengaturanGaji::where('user_id', $user->id)->first();
-                $gajiPokok = $config ? $config->gaji_pokok : 0;
+                // Cari data yang sudah ada untuk periode ini
+                $existing = Penggajian::where('user_id', $user->id)
+                    ->where('bulan', $bulan)
+                    ->where('tahun', $tahun)
+                    ->first();
+                
+                // Jika sudah dibayar, jangan diapa-apakan
+                if ($existing && $existing->status_bayar === 'dibayar') {
+                    continue;
+                }
 
-                // Total Kasbon yang berstatus 'pending' pada bulan & tahun terpilih
-                $totalKasbon = Kasbon::where('user_id', $user->id)
+                // Ambil nilai lembur yang sudah diinput sebelumnya (jika ada)
+                $lemburSekarang = $existing ? (float)$existing->lembur : 0;
+
+                $config = PengaturanGaji::where('user_id', $user->id)->first();
+                $gajiPokok = $config ? (float)$config->gaji_pokok : 0;
+
+                // Recalculate Kasbon yang berstatus 'pending'
+                $totalKasbon = (float)Kasbon::where('user_id', $user->id)
                     ->where('status', 'pending')
                     ->whereMonth('tanggal', $bulan)
                     ->whereYear('tanggal', $tahun)
                     ->sum('nominal');
 
-                // Gunakan updateOrCreate agar data lama bisa diperbarui (misal ada tambahan kasbon baru)
+                // Hitung total diterima dengan menyertakan lembur yang sudah ada
+                $totalDiterima = ($gajiPokok + $lemburSekarang) - $totalKasbon;
+
                 Penggajian::updateOrCreate(
                     [
                         'user_id' => $user->id,
@@ -133,9 +162,9 @@ class GajiController extends Controller
                     ],
                     [
                         'gaji_pokok' => $gajiPokok,
-                        'lembur' => 0,
+                        'lembur' => $lemburSekarang,
                         'potongan_kasbon' => $totalKasbon,
-                        'total_diterima' => $gajiPokok - $totalKasbon,
+                        'total_diterima' => $totalDiterima,
                         'status_bayar' => 'pending'
                     ]
                 );
@@ -153,9 +182,11 @@ class GajiController extends Controller
         try {
             DB::beginTransaction();
             
+            $metode = $request->metode_bayar ?? 'Tunai';
+
             $penggajian->update([
                 'status_bayar' => 'dibayar',
-                'metode_bayar' => $request->metode_bayar,
+                'metode_bayar' => $metode,
                 'tanggal_bayar' => now()
             ]);
 
@@ -167,10 +198,82 @@ class GajiController extends Controller
                 ->update(['status' => 'lunas']);
 
             DB::commit();
-            return back()->with('toast_success', 'Gaji telah dibayarkan via ' . $request->metode_bayar);
+            
+            if ($request->ajax()) {
+                return response()->json([
+                    'status' => 'success', 
+                    'message' => 'Gaji telah dibayarkan via ' . $metode
+                ]);
+            }
+
+            return back()->with('toast_success', 'Gaji telah dibayarkan via ' . $metode);
+
         } catch (\Exception $e) {
             DB::rollBack();
-            return back()->with('toast_danger', 'Gagal bayar: ' . $e->getMessage());
+            if ($request->ajax()) {
+                return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+            }
+            return back()->with('toast_danger', 'Gagal memproses pembayaran: ' . $e->getMessage());
+        }
+    }
+
+    public function handlePaymentSuccess(Penggajian $penggajian)
+    {
+        if ($penggajian->status_bayar == 'pending') {
+            $penggajian->update([
+                'status_bayar' => 'dibayar',
+                'tanggal_bayar' => now()
+            ]);
+
+            // Tandai kasbon lunas
+            Kasbon::where('user_id', $penggajian->user_id)
+                ->where('status', 'pending')
+                ->whereMonth('tanggal', $penggajian->bulan)
+                ->whereYear('tanggal', $penggajian->tahun)
+                ->update(['status' => 'lunas']);
+        }
+        return redirect()->route('gaji.index')->with('toast_success', 'Pembayaran Gaji Berhasil!');
+    }
+
+    public function checkStatus(Penggajian $penggajian)
+    {
+        if ($penggajian->status_bayar == 'dibayar') {
+            return response()->json(['status' => 'dibayar']);
+        }
+
+        try {
+            Config::$serverKey = config('midtrans.server_key');
+            Config::$isProduction = config('midtrans.is_production');
+            
+            $orderId = $penggajian->order_id;
+            
+            if($orderId) {
+                $status = \Midtrans\Transaction::status($orderId);
+                $transactionStatus = $status->transaction_status;
+
+                if ($transactionStatus == 'capture' || $transactionStatus == 'settlement') {
+                    $this->markAsSuccess($penggajian);
+                }
+            }
+        } catch (\Exception $e) {
+            // Abaikan error koneksi
+        }
+
+        return response()->json(['status' => $penggajian->fresh()->status_bayar]);
+    }
+
+    private function markAsSuccess($penggajian) {
+        if ($penggajian->status_bayar != 'dibayar') {
+            $penggajian->update([
+                'status_bayar' => 'dibayar',
+                'tanggal_bayar' => now()
+            ]);
+            
+            Kasbon::where('user_id', $penggajian->user_id)
+                ->where('status', 'pending')
+                ->whereMonth('tanggal', $penggajian->bulan)
+                ->whereYear('tanggal', $penggajian->tahun)
+                ->update(['status' => 'lunas']);
         }
     }
 
@@ -206,8 +309,12 @@ class GajiController extends Controller
     // MANAJEMEN PENGATURAN GAJI
     public function settingIndex()
     {
-        $users = User::whereIn('role', ['kasir', 'karyawan', 'admin'])->get();
-        $settings = PengaturanGaji::with('user')->get();
+        $users = User::whereIn('role', ['kasir', 'karyawan'])->get();
+        $settings = PengaturanGaji::with('user')
+            ->whereHas('user', function($q) {
+                $q->whereIn('role', ['kasir', 'karyawan']);
+            })
+            ->get();
         return view('gaji.setting', compact('users', 'settings'));
     }
 
