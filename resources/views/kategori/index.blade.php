@@ -54,22 +54,22 @@
                 </tbody>
             </table>
         </div>
-    </div>
 
-    <!-- Delete Confirmation Modal -->
-    <x-modal name="confirm-delete-modal" focusable maxWidth="sm">
-        <div class="p-8 text-center">
-            <div class="w-20 h-20 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+        <!-- Delete Confirmation Modal -->
+        <x-modal name="confirm-delete-modal" focusable maxWidth="sm">
+            <div class="p-8 text-center">
+                <div class="w-20 h-20 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </div>
+                <h2 class="text-xl font-black text-slate-800 mb-2 uppercase tracking-tight">Hapus Kategori?</h2>
+                <p class="text-slate-500 text-sm mb-8">Menghapus kategori <span class="font-bold text-slate-800" x-text="itemName"></span> mungkin akan mempengaruhi pengelompokan produk Anda.</p>
+                
+                <form :action="deleteUrl" method="POST" class="flex gap-3">
+                    @csrf @method('DELETE')
+                    <button type="button" x-on:click="$dispatch('close')" class="flex-1 py-4 bg-slate-100 text-slate-500 font-black rounded-xl uppercase tracking-widest text-[10px]">Batal</button>
+                    <button type="submit" class="flex-1 py-4 bg-rose-600 text-white font-black rounded-xl uppercase tracking-widest text-[10px] shadow-lg shadow-rose-100">Ya, Hapus</button>
+                </form>
             </div>
-            <h2 class="text-xl font-black text-slate-800 mb-2 uppercase tracking-tight">Hapus Kategori?</h2>
-            <p class="text-slate-500 text-sm mb-8">Menghapus kategori <span class="font-bold text-slate-800" x-text="itemName"></span> mungkin akan mempengaruhi pengelompokan produk Anda.</p>
-            
-            <form :action="deleteUrl" method="POST" class="flex gap-3">
-                @csrf @method('DELETE')
-                <button type="button" x-on:click="$dispatch('close')" class="flex-1 py-4 bg-slate-100 text-slate-500 font-black rounded-xl uppercase tracking-widest text-[10px]">Batal</button>
-                <button type="submit" class="flex-1 py-4 bg-rose-600 text-white font-black rounded-xl uppercase tracking-widest text-[10px] shadow-lg shadow-rose-100">Ya, Hapus</button>
-            </form>
-        </div>
-    </x-modal>
+        </x-modal>
+    </div>
 </x-app-layout>

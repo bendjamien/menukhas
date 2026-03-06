@@ -162,4 +162,24 @@ class UserController extends Controller
             'message' => 'PIN berhasil direset!'
         ]);
     }
+
+    /**
+     * Remove the specified user from storage.
+     */
+    public function destroy(User $user)
+    {
+        // Mencegah hapus diri sendiri
+        if ($user->id === auth()->id()) {
+            return redirect()->route('users.index')->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
+        }
+
+        // Opsional: Mencegah penghapusan admin utama jika diperlukan
+        // if ($user->role === 'admin' && $user->id === 1) {
+        //     return redirect()->route('users.index')->with('error', 'Akun Administrator utama tidak dapat dihapus.');
+        // }
+
+        $user->delete();
+
+        return redirect()->route('users.index')->with('toast_success', 'User berhasil dihapus!');
+    }
 }
