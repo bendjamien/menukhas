@@ -74,7 +74,9 @@
                                 <td class="px-6 py-4 font-medium text-slate-600">{{ $r->user->name }}</td>
                                 <td class="px-6 py-4 font-black text-emerald-600">Rp {{ number_format($r->total_diterima, 0, ',', '.') }}</td>
                                 <td class="px-6 py-4">
-                                    <span class="px-3 py-1 bg-sky-50 text-sky-700 rounded-lg text-[10px] font-black uppercase">{{ $r->metode_bayar }}</span>
+                                    <span class="px-3 py-1 bg-sky-50 text-sky-700 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                                        {{ $r->metode_bayar ?: 'LAMA' }}
+                                    </span>
                                 </td>
                                 <td class="px-6 py-4 text-xs text-slate-400 font-medium">
                                     {{ $r->tanggal_bayar->format('d M Y, H:i') }}
@@ -96,15 +98,4 @@
             <div class="px-6 py-4 bg-slate-50 border-t border-slate-100">{{ $riwayats->links() }}</div>
         </div>
     </div>
-
-    <script>
-        function printReceipt(url) {
-            const width = 400;
-            const height = 600;
-            const left = (screen.width / 2) - (width / 2);
-            const top = (screen.height / 2) - (height / 2);
-            
-            window.open(url, 'Cetak Struk', `width=${width},height=${height},top=${top},left=${left},toolbar=no,menubar=no,scrollbars=yes,resizable=yes,location=no,status=no`);
-        }
-    </script>
 </x-app-layout>

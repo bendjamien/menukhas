@@ -17,15 +17,18 @@
             }
 
             this.isProcessing = true;
-            const formData = new FormData();
-            formData.append('metode_bayar', this.selectedMetode);
+            
+            // Gunakan URLSearchParams atau FormData yang konsisten
+            const params = new URLSearchParams();
+            params.append('metode_bayar', this.selectedMetode);
 
             try {
                 const response = await fetch(this.payUrl, {
                     method: 'POST',
-                    body: formData,
+                    body: params,
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
+                        'Content-Type': 'application/x-www-form-urlencoded',
                         'X-CSRF-TOKEN': document.querySelector('meta[name=&quot;csrf-token&quot;]').getAttribute('content')
                     }
                 });
