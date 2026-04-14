@@ -9,8 +9,9 @@ use App\Mail\MemberCardMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
-use Milon\Barcode\DNS1D;
 
 class MemberRegistrationController extends Controller
 {
@@ -120,7 +121,6 @@ class MemberRegistrationController extends Controller
     {
         if (!$this->whatsapp_token) throw new \Exception("WhatsApp Token belum diatur di .env");
 
-        // Normalisasi nomor HP: ubah 08... menjadi 628...
         if (str_starts_with($no_hp, '0')) {
             $no_hp = '62' . substr($no_hp, 1);
         }
@@ -149,33 +149,32 @@ class MemberRegistrationController extends Controller
         if (!$this->whatsapp_token) return;
 
         $no_hp = $pelanggan->no_hp;
-        // Normalisasi nomor HP
         if (str_starts_with($no_hp, '0')) {
             $no_hp = '62' . substr($no_hp, 1);
         }
 
         $nama_toko = config('app.name');
         
-        // 1. GENERATE & SIMPAN BARCODE KE STORAGE LOKAL
-        $barcodeContent = file_get_contents("https://barcodeapi.org/api/128/" . $pelanggan->kode_member . ".png");
-        $filename = 'barcode-' . $pelanggan->kode_member . '.png';
-        $path = 'barcodes/' . $filename;
-        
-        // Simpan ke storage/app/public/barcodes/
-        \Illuminate\Support\Facades\Storage::disk('public')->put($path, $barcodeContent);
-        
-        // 2. DAPATKAN URL PUBLIK GAMBAR
-        // CATATAN: Jika di localhost, Fonnte tidak bisa akses URL ini.
-        $barcodeUrl = asset('storage/' . $path);
+        // Gunakan URL Barcode Publik yang pasti bisa diakses Fonnte dari internet
+        $barcodeUrlPublic = "https://barcodeapi.org/api/128/" . $pelanggan->kode_member . ".png";
+
+        // 1. Simpan salinan ke storage lokal (untuk arsip internal)
+        try {
+            $barcodeContent = file_get_contents($barcodeUrlPublic);
+            $filename = 'barcode-' . $pelanggan->kode_member . '.png';
+            Storage::disk('public')->put('barcodes/' . $filename, $barcodeContent);
+        } catch (\Exception $e) {
+            Log::error("Gagal simpan barcode: " . $e->getMessage());
+        }
         
         $caption = "Selamat! *{$pelanggan->nama}*,\n\nPendaftaran member Anda di *{$nama_toko}* telah berhasil.\n\n*DATA MEMBER:*\nID: *{$pelanggan->kode_member}*\nLevel: {$pelanggan->member_level}\n\nSimpan gambar barcode ini sebagai kartu member digital Anda. Tunjukkan kepada kasir saat bertransaksi untuk mendapatkan poin.\n\nTerima kasih!";
 
-        // 3. KIRIM KE FONNTE
+        // 2. Kirim ke Fonnte menggunakan URL publik yang stabil
         $response = Http::withHeaders([
             'Authorization' => $this->whatsapp_token,
         ])->withoutVerifying()->post('https://api.fonnte.com/send', [
             'target' => $no_hp,
-            'url' => $barcodeUrl,
+            'url' => $barcodeUrlPublic,
             'message' => $caption,
             'delay' => '2',
             'countryCode' => '62',
@@ -185,8 +184,7 @@ class MemberRegistrationController extends Controller
         
         if (!$response->successful() || (isset($resBody['status']) && $resBody['status'] === false)) {
             $errorMsg = $resBody['reason'] ?? 'Gagal mengirim gambar barcode member.';
-            // Tetap simpan log tapi jangan gagalkan transaksi jika hanya pengiriman WA yang bermasalah
-            \Illuminate\Support\Facades\Log::error("WhatsApp Error: " . $errorMsg);
+            Log::error("WhatsApp Barcode Error: " . $errorMsg);
         }
     }
 }
