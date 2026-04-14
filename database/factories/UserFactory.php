@@ -25,11 +25,31 @@ class UserFactory extends Factory
     {
         return [
             'name' => fake()->name(),
+            'username' => fake()->unique()->userName(),
             'email' => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
+            'role' => 'karyawan',
+            'status' => true,
+            'jabatan' => 'Staff',
             'remember_token' => Str::random(10),
         ];
+    }
+
+    public function kasir(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'kasir',
+            'jabatan' => 'Kasir',
+        ]);
+    }
+
+    public function karyawan(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'role' => 'karyawan',
+            'jabatan' => 'Staff Produksi',
+        ]);
     }
 
     /**
