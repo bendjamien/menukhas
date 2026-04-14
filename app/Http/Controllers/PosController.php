@@ -585,6 +585,7 @@ class PosController extends Controller
             }
 
             if ($isTunai) {
+                $transaksi->update(['status_produksi' => 'pending']);
                 Pembayaran::create([
                     'transaksi_id' => $transaksi->id,
                     'metode' => 'Tunai',

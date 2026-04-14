@@ -28,16 +28,33 @@ class Transaksi extends Model
         'nominal_bayar',
         'kembalian',
         'status',
+        'status_produksi',
+        'waktu_mulai_produksi',
+        'waktu_selesai_produksi',
     ];
 
     protected $casts = [
         'tanggal' => 'datetime',
+        'waktu_mulai_produksi' => 'datetime',
+        'waktu_selesai_produksi' => 'datetime',
         'total' => 'decimal:2',
         'diskon' => 'decimal:2',
         'pajak' => 'decimal:2',
         'nominal_bayar' => 'decimal:2',
         'kembalian' => 'decimal:2',
     ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::saving(function ($transaksi) {
+            // Jika status berubah ke 'selesai' dan status_produksi masih null atau default
+            if ($transaksi->status === 'selesai' && (!$transaksi->status_produksi || $transaksi->status_produksi === 'pending')) {
+                $transaksi->status_produksi = 'pending';
+            }
+        });
+    }
 
     public function kasir(): BelongsTo
     {

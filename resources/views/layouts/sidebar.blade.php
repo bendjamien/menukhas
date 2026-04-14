@@ -98,6 +98,42 @@
                 <span class="absolute right-3 w-1.5 h-1.5 rounded-full bg-sky-500 shadow-md shadow-sky-300"></span>
             @endif
         </a>
+
+        <!-- LAYAR DAPUR (KDS) -->
+        <a href="{{ route('kitchen.index') }}" 
+           class="group relative flex items-center px-4 py-3 text-sm font-medium rounded-2xl transition-all duration-200
+                  {{ request()->is('kitchen*') 
+                     ? 'bg-amber-50 text-amber-700 shadow-sm ring-1 ring-amber-100' 
+                     : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
+            
+            <svg class="flex-shrink-0 w-5 h-5 transition-colors duration-200 {{ request()->is('kitchen*') ? 'text-amber-600' : 'text-gray-400 group-hover:text-gray-600' }}"
+                 fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            <span class="ml-3 font-bold uppercase tracking-tight">Layar Dapur</span>
+            
+            <span class="ml-auto px-2 py-0.5 bg-amber-500 text-white text-[10px] font-black rounded-lg shadow-sm">KDS</span>
+
+            @if(request()->is('kitchen*'))
+                <span class="absolute right-3 w-1.5 h-1.5 rounded-full bg-amber-500 shadow-md shadow-amber-300"></span>
+            @endif
+        </a>
+
+        <!-- LAYAR ANTRIAN (CUSTOMER DISPLAY) -->
+        <a href="{{ route('display.index') }}" target="_blank"
+           class="group relative flex items-center px-4 py-3 text-sm font-medium rounded-2xl transition-all duration-200
+                  {{ request()->is('display*') 
+                     ? 'bg-emerald-50 text-emerald-700 shadow-sm ring-1 ring-emerald-100' 
+                     : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900' }}">
+            
+            <svg class="flex-shrink-0 w-5 h-5 transition-colors duration-200 {{ request()->is('display*') ? 'text-emerald-600' : 'text-gray-400 group-hover:text-gray-600' }}"
+                 fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+            <span class="ml-3 font-bold uppercase tracking-tight">Layar Antrian</span>
+            
+            <span class="ml-auto px-2 py-0.5 bg-emerald-500 text-white text-[10px] font-black rounded-lg shadow-sm">TV</span>
+
+            @if(request()->is('display*'))
+                <span class="absolute right-3 w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-md shadow-emerald-300"></span>
+            @endif
+        </a>
         @endif
         
         <!-- SEPARATOR -->

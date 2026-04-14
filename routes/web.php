@@ -25,6 +25,8 @@ use App\Http\Controllers\PengeluaranController;
 use App\Http\Controllers\GajiController;
 use App\Http\Controllers\KasbonController;
 use App\Http\Controllers\KaryawanController;
+use App\Http\Controllers\KitchenController;
+use App\Http\Controllers\OrderDisplayController;
 use Illuminate\Support\Facades\Route;
 
 // ===========================================
@@ -35,58 +37,57 @@ Route::get('/', function () {
     return redirect()->route('login');
 });
 
-    // Route::get('/scan-absensi', [AbsensiController::class, 'index'])->name('scan.absensi');
-    Route::post('/proses-absensi', [AbsensiController::class, 'store'])->name('absensi.store');
+Route::post('/proses-absensi', [AbsensiController::class, 'store'])->name('absensi.store');
 
-    // GLOBAL SEARCH API
-    Route::get('/global-search', function (\Illuminate\Http\Request $request) {
-        $query = $request->get('q');
-        if (strlen($query) < 2) return response()->json([]);
+// GLOBAL SEARCH API
+Route::get('/global-search', function (\Illuminate\Http\Request $request) {
+    $query = $request->get('q');
+    if (strlen($query) < 2) return response()->json([]);
 
-        $results = [];
+    $results = [];
 
-        // 1. Cari Produk
-        $products = \App\Models\Produk::where('nama_produk', 'like', "%{$query}%")->limit(3)->get();
-        foreach ($products as $p) {
+    // 1. Cari Produk
+    $products = \App\Models\Produk::where('nama_produk', 'like', "%{$query}%")->limit(3)->get();
+    foreach ($products as $p) {
+        $results[] = [
+            'type' => 'Produk',
+            'text' => $p->nama_produk,
+            'subtext' => 'Stok: ' . $p->stok,
+            'url' => Auth::user()->role == 'admin' ? route('produk.edit', $p->id) : '#',
+            'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>'
+        ];
+    }
+
+    // 2. Cari Pelanggan
+    $customers = \App\Models\Pelanggan::where('nama', 'like', "%{$query}%")->limit(3)->get();
+    foreach ($customers as $c) {
+        $results[] = [
+            'type' => 'Pelanggan',
+            'text' => $c->nama,
+            'subtext' => $c->no_hp ?? '-',
+            'url' => route('pelanggan.edit', $c->id),
+            'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>'
+        ];
+    }
+
+    // 3. Cari Transaksi (ID)
+    if (is_numeric($query)) {
+        $trx = \App\Models\Transaksi::find($query);
+        if ($trx) {
             $results[] = [
-                'type' => 'Produk',
-                'text' => $p->nama_produk,
-                'subtext' => 'Stok: ' . $p->stok,
-                'url' => Auth::user()->role == 'admin' ? route('produk.edit', $p->id) : '#',
-                'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>'
+                'type' => 'Transaksi',
+                'text' => 'Order #' . $trx->id,
+                'subtext' => 'Total: Rp ' . number_format($trx->total, 0, ',', '.'),
+                'url' => route('transaksi.show', $trx->id),
+                'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>'
             ];
         }
+    }
 
-        // 2. Cari Pelanggan
-        $customers = \App\Models\Pelanggan::where('nama', 'like', "%{$query}%")->limit(3)->get();
-        foreach ($customers as $c) {
-            $results[] = [
-                'type' => 'Pelanggan',
-                'text' => $c->nama,
-                'subtext' => $c->no_hp ?? '-',
-                'url' => route('pelanggan.edit', $c->id),
-                'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>'
-            ];
-        }
+    return response()->json($results);
+})->name('global.search');
 
-        // 3. Cari Transaksi (ID)
-        if (is_numeric($query)) {
-            $trx = \App\Models\Transaksi::find($query);
-            if ($trx) {
-                $results[] = [
-                    'type' => 'Transaksi',
-                    'text' => 'Order #' . $trx->id,
-                    'subtext' => 'Total: Rp ' . number_format($trx->total, 0, ',', '.'),
-                    'url' => route('transaksi.show', $trx->id),
-                    'icon' => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>'
-                ];
-            }
-        }
-
-        return response()->json($results);
-    })->name('global.search');
-
-    // Middleware tambahan: Cek apakah user sudah absen pulangRoute::post('/midtrans-callback', [PosController::class, 'midtransCallback']);
+Route::post('/midtrans-callback', [PosController::class, 'midtransCallback']);
 
 
 // ===========================================
@@ -97,226 +98,196 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Middleware tambahan: Cek apakah user sudah absen pulang
     Route::middleware(['not.clocked.out'])->group(function () {
 
-    // 1. DASHBOARD
-    Route::post('/absensi/clock-out', [AbsensiController::class, 'storeClockOutWeb'])->name('absensi.clock_out');
-    Route::get('/dashboard', function () {
-        $today = Carbon::today('Asia/Jakarta');
+        // 1. DASHBOARD
+        Route::post('/absensi/clock-out', [AbsensiController::class, 'storeClockOutWeb'])->name('absensi.clock_out');
+        Route::get('/dashboard', function () {
+            $today = Carbon::today('Asia/Jakarta');
+            
+            $jumlahPelanggan = Pelanggan::count();
+            $jumlahProduk = Produk::count();
+            
+            $transaksiHariIni = Transaksi::whereDate('tanggal', $today)
+                                         ->where('status', 'selesai') 
+                                         ->get();
+            $totalPendapatanHariIni = $transaksiHariIni->sum('total');
+            $jumlahTransaksiHariIni = $transaksiHariIni->count();
+
+            $batasStokMenipis = \App\Models\Setting::where('key', 'stok_minimum')->value('value') ?? 5;
+            $stokMenipis = Produk::where('stok', '<=', $batasStokMenipis)->orderBy('stok', 'asc')->limit(5)->get();
+
+            $transaksiTerbaru = Transaksi::with('pelanggan', 'kasir')
+                                         ->where('status', 'selesai')
+                                         ->latest('tanggal')
+                                         ->limit(5)
+                                         ->get();
+
+            $chartLabels = [];
+            $chartValues = [];
+            for ($i = 6; $i >= 0; $i--) {
+                $date = Carbon::now('Asia/Jakarta')->subDays($i);
+                $chartLabels[] = $date->format('d M');
+                $chartValues[] = Transaksi::whereDate('tanggal', $date)
+                                          ->where('status', 'selesai')
+                                          ->sum('total');
+            }
+
+            $produkTerlaris = \Illuminate\Support\Facades\DB::table('transaksi_detail')
+                ->join('produk', 'transaksi_detail.produk_id', '=', 'produk.id')
+                ->join('transaksi', 'transaksi_detail.transaksi_id', '=', 'transaksi.id')
+                ->where('transaksi.status', 'selesai')
+                ->select('produk.nama_produk', \Illuminate\Support\Facades\DB::raw('SUM(transaksi_detail.jumlah) as total_sold'))
+                ->groupBy('produk.id', 'produk.nama_produk')
+                ->orderByDesc('total_sold')
+                ->limit(5)
+                ->get();
+
+            $absensiHariIni = \App\Models\Absensi::where('user_id', auth()->id())
+                                                 ->where('tanggal', $today->format('Y-m-d'))
+                                                 ->first();
+            
+            $jamPulangSetting = \App\Models\Setting::where('key', 'jam_pulang_kantor')->value('value') ?? '17:00';
+            
+            try {
+                $jamPulang = \Carbon\Carbon::createFromFormat('H:i', substr($jamPulangSetting, 0, 5), 'Asia/Jakarta');
+                $jamPulang->setDate($today->year, $today->month, $today->day);
+                $isWaktunyaPulang = \Carbon\Carbon::now('Asia/Jakarta')->greaterThanOrEqualTo($jamPulang);
+            } catch (\Exception $e) {
+                $isWaktunyaPulang = false;
+            }
+
+            return view('dashboard', [
+                'jumlahPelanggan' => $jumlahPelanggan,
+                'jumlahProduk' => $jumlahProduk,
+                'totalPendapatanHariIni' => $totalPendapatanHariIni,
+                'jumlahTransaksiHariIni' => $jumlahTransaksiHariIni,
+                'stokMenipis' => $stokMenipis,
+                'transaksiTerbaru' => $transaksiTerbaru,
+                'chartLabels' => $chartLabels,
+                'chartValues' => $chartValues,
+                'produkTerlaris' => $produkTerlaris,
+                'absensiHariIni' => $absensiHariIni,
+                'isWaktunyaPulang' => $isWaktunyaPulang,
+                'jamPulangSetting' => $jamPulangSetting
+            ]);
+        })->name('dashboard');
+
+        Route::post('/chat-ai', [ChatController::class, 'sendMessage'])->name('chat.send');
+        Route::get('daftar-member', [MemberRegistrationController::class, 'index'])->name('member.registration.index');
+        Route::post('daftar-member/send-otp', [MemberRegistrationController::class, 'sendOTP'])->name('member.registration.send_otp');
+        Route::post('daftar-member/verify-otp', [MemberRegistrationController::class, 'verifyOTP'])->name('member.registration.verify_otp');
+
+        Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+        Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+        Route::post('/profile/request-pin', [ProfileController::class, 'requestPinChange'])->name('profile.request_pin');
+        Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
         
-        // --- 1. Statistik Utama ---
-        $jumlahPelanggan = Pelanggan::count();
-        $jumlahProduk = Produk::count();
+        // Kitchen Display System (KDS)
+        Route::get('/kitchen', [KitchenController::class, 'index'])->name('kitchen.index');
+        Route::get('/api/kitchen/orders', [KitchenController::class, 'getActiveOrders'])->name('kitchen.api.orders');
+        Route::post('/kitchen/{transaksi}/status', [KitchenController::class, 'updateStatus'])->name('kitchen.update_status');
+
+        // Customer Order Display
+        Route::get('/display', [OrderDisplayController::class, 'index'])->name('display.index');
+        Route::get('/display/api/queue', [OrderDisplayController::class, 'getQueueData'])->name('display.api.queue');
+
+        // Riwayat Transaksi
+        Route::get('/transaksi', [TransaksiController::class, 'index'])->name('transaksi.index');
+        Route::get('/transaksi/trashed', [TransaksiController::class, 'trashed'])->name('transaksi.trashed');
+        Route::get('/transaksi/{transaksi}', [TransaksiController::class, 'show'])->name('transaksi.show');
+        Route::get('/transaksi/{transaksi}/cetak-struk', [TransaksiController::class, 'cetakStruk'])->name('transaksi.cetak_struk');
+        Route::delete('/transaksi/{transaksi}', [TransaksiController::class, 'destroy'])->name('transaksi.destroy');
+        Route::post('/transaksi/{id}/restore', [TransaksiController::class, 'restore'])->name('transaksi.restore');
+        Route::delete('/transaksi/{id}/force-delete', [TransaksiController::class, 'forceDelete'])->name('transaksi.force_delete');
+
+        // Pengeluaran
+        Route::get('/pengeluaran/export-pdf', [PengeluaranController::class, 'exportPdf'])->name('pengeluaran.export_pdf');
+        Route::get('/pengeluaran/export-excel', [PengeluaranController::class, 'exportExcel'])->name('pengeluaran.export_excel');
+        Route::resource('pengeluaran', PengeluaranController::class);
+
+        // Kasbon
+        Route::get('/kasbon', [KasbonController::class, 'index'])->name('kasbon.index');
+        Route::get('/kasbon/create', [KasbonController::class, 'create'])->name('kasbon.create');
+        Route::post('/kasbon', [KasbonController::class, 'store'])->name('kasbon.store');
+        Route::get('/kasbon/{kasbon}/cetak', [KasbonController::class, 'cetakStruk'])->name('kasbon.cetak');
+
+        // Gaji
+        Route::get('/gaji', [GajiController::class, 'index'])->name('gaji.index');
+        Route::get('/gaji/history', [GajiController::class, 'history'])->name('gaji.history');
+        Route::post('/gaji/generate', [GajiController::class, 'generate'])->name('gaji.generate');
+        Route::get('/gaji/{penggajian}/edit', [GajiController::class, 'edit'])->name('gaji.edit');
+        Route::put('/gaji/{penggajian}', [GajiController::class, 'update'])->name('gaji.update');
+        Route::post('/gaji/{penggajian}/bayar', [GajiController::class, 'bayar'])->name('gaji.bayar');
+        Route::get('/gaji/{penggajian}/payment-success', [GajiController::class, 'handlePaymentSuccess'])->name('gaji.payment_success');
+        Route::get('/gaji/{penggajian}/check-status', [GajiController::class, 'checkStatus'])->name('gaji.check_status');
+        Route::get('/gaji/{penggajian}/cetak', [GajiController::class, 'cetakStruk'])->name('gaji.cetak');
         
-        // Transaksi Hari Ini (Selesai)
-        $transaksiHariIni = Transaksi::whereDate('tanggal', $today)
-                                     ->where('status', 'selesai') 
-                                     ->get();
-        $totalPendapatanHariIni = $transaksiHariIni->sum('total');
-        $jumlahTransaksiHariIni = $transaksiHariIni->count();
+        Route::get('/pengaturan-gaji', [GajiController::class, 'settingIndex'])->name('gaji.setting.index');
+        Route::post('/pengaturan-gaji', [GajiController::class, 'settingStore'])->name('gaji.setting.store');
 
-        // --- 2. Peringatan Stok Menipis (Limit 5) ---
-        $batasStokMenipis = \App\Models\Setting::where('key', 'stok_minimum')->value('value') ?? 5;
-        $stokMenipis = Produk::where('stok', '<=', $batasStokMenipis)->orderBy('stok', 'asc')->limit(5)->get();
+        Route::resource('karyawan', KaryawanController::class);
 
-        // --- 3. Transaksi Terbaru (Limit 5) ---
-        $transaksiTerbaru = Transaksi::with('pelanggan', 'kasir')
-                                     ->where('status', 'selesai')
-                                     ->latest('tanggal')
-                                     ->limit(5)
-                                     ->get();
+        // MANAJEMEN SHIFT
+        Route::get('shift/open', [ShiftController::class, 'openIndex'])->name('shift.open.index');
+        Route::post('shift/open', [ShiftController::class, 'openStore'])->name('shift.open.store');
+        Route::get('shift/close', [ShiftController::class, 'closeIndex'])->name('shift.close.index');
+        Route::post('shift/close', [ShiftController::class, 'closeStore'])->name('shift.close.store');
+        Route::get('shift/history', [ShiftController::class, 'history'])->name('shift.history');
 
-        // --- 4. Grafik Pendapatan 7 Hari Terakhir ---
-        $chartLabels = [];
-        $chartValues = [];
-        for ($i = 6; $i >= 0; $i--) {
-            $date = Carbon::now('Asia/Jakarta')->subDays($i);
-            $chartLabels[] = $date->format('d M');
-            $chartValues[] = Transaksi::whereDate('tanggal', $date)
-                                      ->where('status', 'selesai')
-                                      ->sum('total');
-        }
+        Route::middleware([\App\Http\Middleware\CheckRoleMiddleware::class . ':admin,kasir', 'shift.opened'])->group(function () {
+            Route::get('pos/{transaksi?}', [PosController::class, 'index'])->name('pos.index');
+            Route::get('pos-new-draft', [PosController::class, 'buatDraftBaru'])->name('pos.new_draft');
+            Route::get('pos-search-member', [PosController::class, 'searchMember'])->name('pos.search_member'); 
+            Route::post('pos/store-member', [PosController::class, 'storeNewMember'])->name('pos.store_member');
+            Route::post('pos/scan', [PosController::class, 'scanBarcode'])->name('pos.scan');
+            Route::post('pos/add-item', [PosController::class, 'addItem'])->name('pos.add_item');
+            Route::post('pos/update-item', [PosController::class, 'updateItem'])->name('pos.update_item');
+            Route::post('pos/remove-item', [PosController::class, 'removeItem'])->name('pos.remove_item');
+            Route::post('pos/cancel-draft', [PosController::class, 'cancelDraft'])->name('pos.cancel_draft');
+            Route::post('pos/save-customer', [PosController::class, 'saveCustomerToDraft'])->name('pos.save_customer');
+            Route::get('pos/checkout/{transaksi}', [PosController::class, 'showCheckoutForm'])->name('pos.checkout.show');
+            Route::post('pos/checkout/{transaksi}', [PosController::class, 'storeCheckout'])->name('pos.checkout.store');
+            Route::get('pos/payment-success/{transaksi}', [PosController::class, 'handlePaymentSuccess'])->name('pos.payment_success');
+            Route::get('pos/cancel-pending/{transaksi}', [PosController::class, 'cancelPendingTransaction'])->name('pos.cancel_pending');
+            Route::get('pos/check-status/{transaksi}', [PosController::class, 'checkStatus'])->name('pos.check_status');
+            Route::post('pos/split-bill', [PosController::class, 'splitBill'])->name('pos.split_bill');
+            Route::post('pos/check-voucher', [PosController::class, 'checkVoucher'])->name('pos.check_voucher');
+        });
 
-        // --- 5. Produk Terlaris (Top 5) ---
-        // Menggunakan join atau relation counting yang efisien
-        $produkTerlaris = \Illuminate\Support\Facades\DB::table('transaksi_detail')
-            ->join('produk', 'transaksi_detail.produk_id', '=', 'produk.id')
-            ->join('transaksi', 'transaksi_detail.transaksi_id', '=', 'transaksi.id')
-            ->where('transaksi.status', 'selesai')
-            ->select('produk.nama_produk', \Illuminate\Support\Facades\DB::raw('SUM(transaksi_detail.jumlah) as total_sold'))
-            ->groupBy('produk.id', 'produk.nama_produk')
-            ->orderByDesc('total_sold')
-            ->limit(5)
-            ->get();
+        Route::middleware([\App\Http\Middleware\CheckRoleMiddleware::class . ':admin,owner,kasir'])->group(function () {
+            Route::resource('pelanggan', PelangganController::class);
+        });
 
-        // Data Absensi User Login Hari Ini
-        $absensiHariIni = \App\Models\Absensi::where('user_id', auth()->id())
-                                             ->where('tanggal', $today->format('Y-m-d'))
-                                             ->first();
-        
-        $jamPulangSetting = \App\Models\Setting::where('key', 'jam_pulang_kantor')->value('value') ?? '17:00';
-        
-        // Parse jam pulang safely
-        try {
-            $jamPulang = \Carbon\Carbon::createFromFormat('H:i', substr($jamPulangSetting, 0, 5), 'Asia/Jakarta');
-            // Set date to today so we compare times on the same day
-            $jamPulang->setDate($today->year, $today->month, $today->day);
-            $isWaktunyaPulang = \Carbon\Carbon::now('Asia/Jakarta')->greaterThanOrEqualTo($jamPulang);
-        } catch (\Exception $e) {
-            // Fallback if format invalid
-            $isWaktunyaPulang = false;
-        }
+        Route::middleware([\App\Http\Middleware\CheckRoleMiddleware::class . ':admin,owner'])->group(function () {
+            Route::get('stok-log', [StokLogController::class, 'index'])->name('stok_log.index');
+            Route::get('pembayaran', [PembayaranController::class, 'index'])->name('pembayaran.index');
+            Route::get('laporan/pendapatan', [LaporanPendapatanController::class, 'index'])->name('laporan.pendapatan');
+            Route::get('laporan/pendapatan/pdf', [LaporanPendapatanController::class, 'exportPdf'])->name('laporan.pendapatan.pdf');
+            Route::get('laporan/pendapatan/excel', [LaporanPendapatanController::class, 'exportExcel'])->name('laporan.pendapatan.excel');
+            Route::get('laporan/absensi', [App\Http\Controllers\LaporanAbsensiController::class, 'index'])->name('laporan.absensi');
+            Route::get('laporan/absensi/{user}', [App\Http\Controllers\LaporanAbsensiController::class, 'show'])->name('laporan.absensi.show');
+            Route::get('laporan/absensi/{user}/print', [App\Http\Controllers\LaporanAbsensiController::class, 'print'])->name('laporan.absensi.print');
+        });
 
-        return view('dashboard', [
-            'jumlahPelanggan' => $jumlahPelanggan,
-            'jumlahProduk' => $jumlahProduk,
-            'totalPendapatanHariIni' => $totalPendapatanHariIni,
-            'jumlahTransaksiHariIni' => $jumlahTransaksiHariIni,
-            'stokMenipis' => $stokMenipis,
-            'transaksiTerbaru' => $transaksiTerbaru,
-            'chartLabels' => $chartLabels,
-            'chartValues' => $chartValues,
-            'produkTerlaris' => $produkTerlaris,
-            'absensiHariIni' => $absensiHariIni,
-            'isWaktunyaPulang' => $isWaktunyaPulang,
-            'jamPulangSetting' => $jamPulangSetting
-        ]);
-    })->name('dashboard');
-
-    Route::post('/chat-ai', [ChatController::class, 'sendMessage'])->name('chat.send');
-    // Pendaftaran Member Baru Flow
-    Route::get('daftar-member', [MemberRegistrationController::class, 'index'])->name('member.registration.index');
-    Route::post('daftar-member/send-otp', [MemberRegistrationController::class, 'sendOTP'])->name('member.registration.send_otp');
-    Route::post('daftar-member/verify-otp', [MemberRegistrationController::class, 'verifyOTP'])->name('member.registration.verify_otp');
-
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::post('/profile/request-pin', [ProfileController::class, 'requestPinChange'])->name('profile.request_pin');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-    // Riwayat Transaksi
-    Route::get('/transaksi', [TransaksiController::class, 'index'])->name('transaksi.index');
-    Route::get('/transaksi/trashed', [TransaksiController::class, 'trashed'])->name('transaksi.trashed');
-    Route::get('/transaksi/{transaksi}', [TransaksiController::class, 'show'])->name('transaksi.show');
-    Route::get('/transaksi/{transaksi}/cetak-struk', [TransaksiController::class, 'cetakStruk'])->name('transaksi.cetak_struk');
-    Route::delete('/transaksi/{transaksi}', [TransaksiController::class, 'destroy'])->name('transaksi.destroy');
-    Route::post('/transaksi/{id}/restore', [TransaksiController::class, 'restore'])->name('transaksi.restore');
-    Route::delete('/transaksi/{id}/force-delete', [TransaksiController::class, 'forceDelete'])->name('transaksi.force_delete');
-
-    // Pengeluaran (Expense Management)
-    Route::get('/pengeluaran/export-pdf', [PengeluaranController::class, 'exportPdf'])->name('pengeluaran.export_pdf');
-    Route::get('/pengeluaran/export-excel', [PengeluaranController::class, 'exportExcel'])->name('pengeluaran.export_excel');
-    Route::resource('pengeluaran', PengeluaranController::class);
-
-    // Kasbon
-    Route::get('/kasbon', [KasbonController::class, 'index'])->name('kasbon.index');
-    Route::get('/kasbon/create', [KasbonController::class, 'create'])->name('kasbon.create');
-    Route::post('/kasbon', [KasbonController::class, 'store'])->name('kasbon.store');
-    Route::get('/kasbon/{kasbon}/cetak', [KasbonController::class, 'cetakStruk'])->name('kasbon.cetak');
-
-    // Gaji
-    Route::get('/gaji', [GajiController::class, 'index'])->name('gaji.index');
-    Route::get('/gaji/history', [GajiController::class, 'history'])->name('gaji.history');
-    Route::get('/gaji/history/export-pdf', [GajiController::class, 'exportHistoryPdf'])->name('gaji.history.export_pdf');
-    Route::post('/gaji/generate', [GajiController::class, 'generate'])->name('gaji.generate');
-    Route::get('/gaji/{penggajian}/edit', [GajiController::class, 'edit'])->name('gaji.edit');
-    Route::put('/gaji/{penggajian}', [GajiController::class, 'update'])->name('gaji.update');
-    Route::post('/gaji/{penggajian}/bayar', [GajiController::class, 'bayar'])->name('gaji.bayar');
-    Route::get('/gaji/{penggajian}/payment-success', [GajiController::class, 'handlePaymentSuccess'])->name('gaji.payment_success');
-    Route::get('/gaji/{penggajian}/check-status', [GajiController::class, 'checkStatus'])->name('gaji.check_status');
-    Route::get('/gaji/{penggajian}/cetak', [GajiController::class, 'cetakStruk'])->name('gaji.cetak');
-    
-    // Pengaturan Gaji
-    Route::get('/pengaturan-gaji', [GajiController::class, 'settingIndex'])->name('gaji.setting.index');
-    Route::post('/pengaturan-gaji', [GajiController::class, 'settingStore'])->name('gaji.setting.store');
-
-    // Manajemen Karyawan (Master Data Karyawan selain Kasir/Admin)
-    Route::resource('karyawan', KaryawanController::class);
-
-
-    // ===========================================
-    // GROUP: ADMIN & KASIR (Akses POS/Input Transaksi)
-    // ===========================================
-
-    // MANAJEMEN SHIFT (Buka/Tutup Kasir)
-    Route::get('shift/open', [ShiftController::class, 'openIndex'])->name('shift.open.index');
-    Route::post('shift/open', [ShiftController::class, 'openStore'])->name('shift.open.store');
-    Route::get('shift/close', [ShiftController::class, 'closeIndex'])->name('shift.close.index');
-    Route::post('shift/close', [ShiftController::class, 'closeStore'])->name('shift.close.store');
-    Route::get('shift/history', [ShiftController::class, 'history'])->name('shift.history');
-
-    Route::middleware([\App\Http\Middleware\CheckRoleMiddleware::class . ':admin,kasir', 'shift.opened'])->group(function () {
-        Route::get('pos/{transaksi?}', [PosController::class, 'index'])->name('pos.index');
-        Route::get('pos-new-draft', [PosController::class, 'buatDraftBaru'])->name('pos.new_draft');
-        Route::get('pos-search-member', [PosController::class, 'searchMember'])->name('pos.search_member'); 
-        Route::post('pos/store-member', [PosController::class, 'storeNewMember'])->name('pos.store_member'); // Route Tambah Member via POS
-        Route::post('pos/scan', [PosController::class, 'scanBarcode'])->name('pos.scan'); // Route Scan Barcode
-        Route::post('pos/add-item', [PosController::class, 'addItem'])->name('pos.add_item');
-        Route::post('pos/update-item', [PosController::class, 'updateItem'])->name('pos.update_item');
-        Route::post('pos/remove-item', [PosController::class, 'removeItem'])->name('pos.remove_item');
-        Route::post('pos/cancel-draft', [PosController::class, 'cancelDraft'])->name('pos.cancel_draft');
-        Route::post('pos/save-customer', [PosController::class, 'saveCustomerToDraft'])->name('pos.save_customer');
-        Route::get('pos/checkout/{transaksi}', [PosController::class, 'showCheckoutForm'])->name('pos.checkout.show');
-        Route::post('pos/checkout/{transaksi}', [PosController::class, 'storeCheckout'])->name('pos.checkout.store');
-        Route::get('pos/payment-success/{transaksi}', [PosController::class, 'handlePaymentSuccess'])->name('pos.payment_success');
-        Route::get('pos/cancel-pending/{transaksi}', [PosController::class, 'cancelPendingTransaction'])->name('pos.cancel_pending');
-        Route::get('pos/check-status/{transaksi}', [PosController::class, 'checkStatus'])->name('pos.check_status');
-        Route::post('pos/split-bill', [PosController::class, 'splitBill'])->name('pos.split_bill');
-        Route::post('pos/check-voucher', [PosController::class, 'checkVoucher'])->name('pos.check_voucher');
-    });
-
-
-    // ===========================================
-    // GROUP: ADMIN & OWNER & KASIR (Data Pelanggan)
-    // ===========================================
-    Route::middleware([\App\Http\Middleware\CheckRoleMiddleware::class . ':admin,owner,kasir'])->group(function () {
-        Route::resource('pelanggan', PelangganController::class);
-    });
-
-    // ===========================================
-    // GROUP: KHUSUS ADMIN & OWNER (Laporan Keuangan & Stok)
-    // ===========================================
-    Route::middleware([\App\Http\Middleware\CheckRoleMiddleware::class . ':admin,owner'])->group(function () {
-        Route::get('stok-log', [StokLogController::class, 'index'])->name('stok_log.index');
-        Route::get('pembayaran', [PembayaranController::class, 'index'])->name('pembayaran.index');
-        
-        Route::get('laporan/pendapatan', [LaporanPendapatanController::class, 'index'])->name('laporan.pendapatan');
-        Route::get('laporan/pendapatan/pdf', [LaporanPendapatanController::class, 'exportPdf'])->name('laporan.pendapatan.pdf');
-        Route::get('laporan/pendapatan/excel', [LaporanPendapatanController::class, 'exportExcel'])->name('laporan.pendapatan.excel');
-
-        Route::get('laporan/absensi', [App\Http\Controllers\LaporanAbsensiController::class, 'index'])->name('laporan.absensi');
-        Route::get('laporan/absensi/{user}', [App\Http\Controllers\LaporanAbsensiController::class, 'show'])->name('laporan.absensi.show');
-        Route::get('laporan/absensi/{user}/print', [App\Http\Controllers\LaporanAbsensiController::class, 'print'])->name('laporan.absensi.print');
-    });
-
-
-    // ===========================================
-    // GROUP: STRICT ADMIN (Hanya Admin)
-    // Manajemen Master Data, User, Setting
-    // ===========================================
-    Route::middleware([\App\Http\Middleware\CheckRoleMiddleware::class . ':admin'])->group(function () {
-        
-        Route::resource('kategori', KategoriController::class);
-        Route::get('produk/check-barcode/{barcode}', [ProdukController::class, 'checkBarcode'])->name('produk.check-barcode');
-    Route::resource('produk', ProdukController::class); 
-
-        Route::get('stok-log/create', [StokLogController::class, 'create'])->name('stok_log.create');
-        Route::post('stok-log', [StokLogController::class, 'store'])->name('stok_log.store');
-
-        Route::get('pengaturan', [PengaturanController::class, 'index'])->name('pengaturan.index');
-        Route::post('pengaturan', [PengaturanController::class, 'update'])->name('pengaturan.update');
-        
-        Route::resource('users', UserController::class);
-        Route::get('users/{id}/cetak-kartu', [UserController::class, 'cetakKartu'])->name('users.cetak_kartu');
-        Route::post('users/{user}/view-pin', [UserController::class, 'viewPin'])->name('users.view_pin');
-        Route::patch('users/{user}/approve-pin', [UserController::class, 'approvePin'])->name('users.approve_pin');
-        Route::patch('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
-        Route::post('users/{user}/reset-pin', [UserController::class, 'resetPin'])->name('users.reset_pin');
-        
-        Route::post('vouchers', [VoucherController::class, 'store'])->name('vouchers.store');
-        Route::delete('vouchers/{id}', [VoucherController::class, 'destroy'])->name('vouchers.destroy');
-        Route::patch('vouchers/{id}/toggle', [VoucherController::class, 'toggleStatus'])->name('vouchers.toggle');
-    }); 
+        Route::middleware([\App\Http\Middleware\CheckRoleMiddleware::class . ':admin'])->group(function () {
+            Route::resource('kategori', KategoriController::class);
+            Route::get('produk/check-barcode/{barcode}', [ProdukController::class, 'checkBarcode'])->name('produk.check-barcode');
+            Route::resource('produk', ProdukController::class); 
+            Route::get('stok-log/create', [StokLogController::class, 'create'])->name('stok_log.create');
+            Route::post('stok-log', [StokLogController::class, 'store'])->name('stok_log.store');
+            Route::get('pengaturan', [PengaturanController::class, 'index'])->name('pengaturan.index');
+            Route::post('pengaturan', [PengaturanController::class, 'update'])->name('pengaturan.update');
+            Route::resource('users', UserController::class);
+            Route::get('users/{id}/cetak-kartu', [UserController::class, 'cetakKartu'])->name('users.cetak_kartu');
+            Route::post('users/{user}/view-pin', [UserController::class, 'viewPin'])->name('users.view_pin');
+            Route::patch('users/{user}/approve-pin', [UserController::class, 'approvePin'])->name('users.approve_pin');
+            Route::patch('users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('users.toggle-status');
+            Route::post('users/{user}/reset-pin', [UserController::class, 'resetPin'])->name('users.reset_pin');
+            Route::post('vouchers', [VoucherController::class, 'store'])->name('vouchers.store');
+            Route::delete('vouchers/{id}', [VoucherController::class, 'destroy'])->name('vouchers.destroy');
+            Route::patch('vouchers/{id}/toggle', [VoucherController::class, 'toggleStatus'])->name('vouchers.toggle');
+        }); 
 
     }); // End Middleware not.clocked.out
-
 });
 
 require __DIR__.'/auth.php';
