@@ -184,10 +184,159 @@
         </x-modal>
 
         <x-modal name="full-cart-modal" focusable maxWidth="4xl">
-            <div class="p-8 bg-white rounded-3xl h-[85vh] flex flex-col" x-data="{ step: 'view', selectedItems: [], items: {{ $activeDraft->details->map(function($item) { return ['id' => $item->id, 'produk_id' => $item->produk_id, 'nama_produk' => $item->produk->nama_produk, 'kategori' => $item->produk->kategori->nama ?? '-', 'stok_asli' => $item->produk->stok + $item->jumlah, 'harga_satuan' => number_format($item->harga_satuan, 0, ',', '.'), 'jumlah' => $item->jumlah, 'subtotal' => number_format($item->subtotal, 0, ',', '.') ]; })->toJson() }}, total: '{{ number_format($activeDraft->total, 0, ',', '.') }}', updateData(newData) { this.items = newData.details; this.total = newData.total_format; }, toggleSelectItem(id, maxQty) { const idx = this.selectedItems.findIndex(i => i.detail_id === id); if (idx > -1) this.selectedItems.splice(idx, 1); else this.selectedItems.push({ detail_id: id, qty: maxQty }); }, async executeSplit() { if (this.selectedItems.length === 0) return; try { let res = await fetch('{{ route('pos.split_bill') }}', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' }, body: JSON.stringify({ transaksi_id: {{ $activeDraft->id }}, items: this.selectedItems }) }); let data = await res.json(); if (res.ok) { Toastify({ text: data.message, duration: 3000, style: { background: '#10b981' } }).showToast(); window.location.reload(); } } catch (e) { } } }" x-on:cart-updated.window="updateData($event.detail)">
-                <div class="flex justify-between items-center mb-8 border-b pb-6 shrink-0"><div><h2 class="text-2xl font-black text-gray-800 uppercase tracking-tight italic" x-text="step === 'view' ? 'Rincian Belanja' : 'Pisah Nota (Pilih Menu)'"></h2><p class="text-xs font-bold text-gray-400 mt-1 uppercase tracking-widest">ORDER #{{ $activeDraft->id }}</p></div><div class="text-right"><p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Pembayaran</p><p class="text-4xl font-black text-sky-600 tracking-tighter" x-text="'Rp ' + total"></p></div></div>
-                <div class="flex-1 overflow-y-auto custom-scrollbar -mx-2 px-2"><table class="w-full text-left"><thead class="bg-gray-50/80 sticky top-0 z-10 border-b border-gray-100"><tr><th x-show="step === 'split'" class="py-4 px-4 w-10"></th><th class="py-4 px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Menu</th><th class="py-4 px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Harga</th><th class="py-3 px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Qty</th><th class="py-4 px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Subtotal</th><th x-show="step === 'view'" class="py-4 px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Aksi</th></tr></thead><tbody class="divide-y divide-gray-100"><template x-for="item in items" :key="item.id"><tr class="hover:bg-sky-50/30 transition-colors" :class="selectedItems.find(i => i.detail_id === item.id) ? 'bg-sky-50' : ''"><td x-show="step === 'split'" class="py-5 px-4 text-center"><input type="checkbox" @change="toggleSelectItem(item.id, item.jumlah)" class="w-5 h-5 text-sky-600 border-gray-300 rounded focus:ring-sky-500"></td><td class="py-5 px-4"><div class="flex items-center gap-4"><div class="w-12 h-12 rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600 font-black text-xs shrink-0" x-text="item.nama_produk.substring(0, 2).toUpperCase()"></div><div><div class="font-black text-gray-800 text-base leading-tight" x-text="item.nama_produk"></div><div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1" x-text="item.kategori"></div></div></div></td><td class="py-5 px-4 text-right font-bold text-gray-600" x-text="'Rp ' + item.harga_satuan"></td><td class="py-5 px-4 text-center"><div x-show="step === 'view'" class="inline-flex items-center bg-gray-100 rounded-2xl p-1 border border-gray-200/50 shadow-inner"><button type="button" @click="if(item.jumlah > 1) updateItemQty(item.id, item.jumlah - 1)" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-sky-600 transition-colors bg-white rounded-xl shadow-sm"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M20 12H4"></path></svg></button><div class="w-10 text-sm font-black text-gray-800" x-text="item.jumlah"></div><button type="button" @click="if(item.jumlah < item.stok_asli) updateItemQty(item.id, item.jumlah + 1)" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-sky-600 transition-colors bg-white rounded-xl shadow-sm"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 4v16m8-8H4"></path></svg></button></div><div x-show="step === 'split'" class="font-black text-gray-800" x-text="item.jumlah"></div></td><td class="py-5 px-4 text-right font-black text-gray-800" x-text="'Rp ' + item.subtotal"></td><td x-show="step === 'view'" class="py-5 px-4 text-center"><button @click="removeItemAJAX(item.id)" class="p-2 text-gray-300 hover:text-rose-500 transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></td></tr></template></tbody></table></div>
-                <div class="mt-8 pt-8 border-t border-gray-100 flex justify-between items-center shrink-0"><div><button x-show="step === 'view' && items.length > 1" @click="step = 'split'" class="px-6 py-3 bg-amber-50 text-amber-700 font-black rounded-2xl uppercase tracking-widest text-[10px] hover:bg-amber-100 transition-colors flex items-center gap-2 border border-amber-100"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758L5 19m0-14l4.121 4.121"></path></svg>Split Bill</button><button x-show="step === 'split'" @click="step = 'view'; selectedItems = []" class="text-gray-400 font-bold text-xs uppercase tracking-widest">Batal</button></div><div class="flex gap-4"><button type="button" x-on:click="$dispatch('close')" class="px-10 py-4 bg-gray-100 text-gray-700 font-black rounded-2xl uppercase tracking-widest text-xs hover:bg-gray-200 transition-colors">Tutup</button><a x-show="step === 'view'" href="{{ route('pos.checkout.show', $activeDraft) }}" class="px-10 py-4 bg-sky-600 text-white font-black rounded-2xl shadow-xl shadow-sky-100 hover:bg-sky-700 uppercase tracking-widest text-xs transition-all active:scale-95" :class="items.length === 0 ? 'hidden' : ''">Lanjutkan &rarr;</a><button x-show="step === 'split'" @click="executeSplit()" :disabled="selectedItems.length === 0" class="px-10 py-4 bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-100 hover:bg-emerald-700 uppercase tracking-widest text-xs transition-all active:scale-95 disabled:opacity-50">Pisahkan Nota</button></div></div>
+            <div class="p-8 bg-white rounded-3xl h-[85vh] flex flex-col" 
+                 x-data="{ 
+                    step: 'view', 
+                    selectedItems: [], 
+                    items: {{ $activeDraft->details->map(function($item) { 
+                        return [
+                            'id' => $item->id, 
+                            'produk_id' => $item->produk_id, 
+                            'nama_produk' => $item->produk->nama_produk, 
+                            'kategori' => $item->produk->kategori->nama ?? '-', 
+                            'stok_asli' => $item->produk->stok + $item->jumlah, 
+                            'harga_satuan' => number_format($item->harga_satuan, 0, ',', '.'), 
+                            'jumlah' => $item->jumlah, 
+                            'subtotal' => number_format($item->subtotal, 0, ',', '.') 
+                        ]; 
+                    })->toJson() }}, 
+                    total: '{{ number_format($activeDraft->total, 0, ',', '.') }}', 
+                    updateData(newData) { 
+                        this.items = newData.details; 
+                        this.total = newData.total_format; 
+                    }, 
+                    toggleSelectItem(item) { 
+                        const idx = this.selectedItems.findIndex(i => i.detail_id === item.id); 
+                        if (idx > -1) {
+                            this.selectedItems.splice(idx, 1); 
+                        } else {
+                            this.selectedItems.push({ detail_id: item.id, qty: 1, max: item.jumlah, nama: item.nama_produk }); 
+                        }
+                    }, 
+                    getSplitQty(id) {
+                        const found = this.selectedItems.find(i => i.detail_id === id);
+                        return found ? found.qty : 0;
+                    },
+                    updateSplitQty(id, delta) {
+                        const item = this.selectedItems.find(i => i.detail_id === id);
+                        if (item) {
+                            const newQty = item.qty + delta;
+                            if (newQty >= 1 && newQty <= item.max) {
+                                item.qty = newQty;
+                            }
+                        }
+                    },
+                    async executeSplit() { 
+                        if (this.selectedItems.length === 0) return; 
+                        try { 
+                            let res = await fetch('{{ route('pos.split_bill') }}', { 
+                                method: 'POST', 
+                                headers: { 
+                                    'Content-Type': 'application/json', 
+                                    'X-CSRF-TOKEN': '{{ csrf_token() }}' 
+                                }, 
+                                body: JSON.stringify({ transaksi_id: {{ $activeDraft->id }}, items: this.selectedItems }) 
+                            }); 
+                            let data = await res.json(); 
+                            if (res.ok) { 
+                                Toastify({ text: data.message, duration: 3000, style: { background: '#10b981' } }).showToast(); 
+                                window.location.href = '{{ route('pos.index') }}/' + data.new_trx_id;
+                            } 
+                        } catch (e) { } 
+                    } 
+                 }" 
+                 x-on:cart-updated.window="updateData($event.detail)">
+                
+                <div class="flex justify-between items-center mb-8 border-b pb-6 shrink-0">
+                    <div>
+                        <h2 class="text-2xl font-black text-gray-800 uppercase tracking-tight italic" x-text="step === 'view' ? 'Rincian Belanja' : 'Pisah Nota (Atur Jumlah)'"></h2>
+                        <p class="text-xs font-bold text-gray-400 mt-1 uppercase tracking-widest">ORDER #{{ $activeDraft->id }}</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Total Pembayaran</p>
+                        <p class="text-4xl font-black text-sky-600 tracking-tighter" x-text="'Rp ' + total"></p>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto custom-scrollbar -mx-2 px-2">
+                    <table class="w-full text-left">
+                        <thead class="bg-gray-50/80 sticky top-0 z-10 border-b border-gray-100">
+                            <tr>
+                                <th x-show="step === 'split'" class="py-4 px-4 w-10"></th>
+                                <th class="py-4 px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Menu</th>
+                                <th class="py-4 px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Harga</th>
+                                <th class="py-3 px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Qty</th>
+                                <th class="py-4 px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Subtotal</th>
+                                <th x-show="step === 'view'" class="py-4 px-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <template x-for="item in items" :key="item.id">
+                                <tr class="hover:bg-sky-50/30 transition-colors" :class="selectedItems.find(i => i.detail_id === item.id) ? 'bg-sky-50' : ''">
+                                    <td x-show="step === 'split'" class="py-5 px-4 text-center">
+                                        <input type="checkbox" @change="toggleSelectItem(item)" :checked="selectedItems.find(i => i.detail_id === item.id)" class="w-5 h-5 text-sky-600 border-gray-300 rounded focus:ring-sky-500 cursor-pointer">
+                                    </td>
+                                    <td class="py-5 px-4">
+                                        <div class="flex items-center gap-4">
+                                            <div class="w-12 h-12 rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600 font-black text-xs shrink-0" x-text="item.nama_produk.substring(0, 2).toUpperCase()"></div>
+                                            <div>
+                                                <div class="font-black text-gray-800 text-base leading-tight" x-text="item.nama_produk"></div>
+                                                <div class="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1" x-text="item.kategori"></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="py-5 px-4 text-right font-bold text-gray-600" x-text="'Rp ' + item.harga_satuan"></td>
+                                    
+                                    <td class="py-5 px-4 text-center">
+                                        <!-- View Mode Qty -->
+                                        <div x-show="step === 'view'" class="inline-flex items-center bg-gray-100 rounded-2xl p-1 border border-gray-200/50 shadow-inner">
+                                            <button type="button" @click="if(item.jumlah > 1) updateItemQty(item.id, item.jumlah - 1)" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-sky-600 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M20 12H4"></path></svg></button>
+                                            <span class="w-10 text-center font-black text-gray-800 text-sm" x-text="item.jumlah"></span>
+                                            <button type="button" @click="updateItemQty(item.id, item.jumlah + 1)" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-sky-600 transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg></button>
+                                        </div>
+
+                                        <!-- Split Mode Qty Adjustment -->
+                                        <div x-show="step === 'split'" class="flex flex-col items-center">
+                                            <template x-if="selectedItems.find(i => i.detail_id === item.id)">
+                                                <div class="space-y-1">
+                                                    <div class="inline-flex items-center bg-sky-600 rounded-2xl p-1 shadow-lg shadow-sky-100">
+                                                        <button type="button" @click="updateSplitQty(item.id, -1)" class="w-8 h-8 flex items-center justify-center text-white hover:bg-sky-700 rounded-xl transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M20 12H4"></path></svg></button>
+                                                        <span class="w-10 text-center font-black text-white text-sm" x-text="getSplitQty(item.id)"></span>
+                                                        <button type="button" @click="updateSplitQty(item.id, 1)" class="w-8 h-8 flex items-center justify-center text-white hover:bg-sky-700 rounded-xl transition-colors"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 4v16m8-8H4"></path></svg></button>
+                                                    </div>
+                                                    <div class="text-[9px] font-bold text-sky-600 uppercase">Pindah <span x-text="getSplitQty(item.id)"></span> dari <span x-text="item.jumlah"></span></div>
+                                                </div>
+                                            </template>
+                                            <template x-if="!selectedItems.find(i => i.detail_id === item.id)">
+                                                <div class="text-[10px] font-bold text-gray-400 uppercase">Tersedia: <span x-text="item.jumlah"></span></div>
+                                            </template>
+                                        </div>
+                                    </td>
+
+                                    <td class="py-5 px-4 text-right font-black text-gray-800" x-text="'Rp ' + item.subtotal"></td>
+                                    <td x-show="step === 'view'" class="py-5 px-4 text-center">
+                                        <button @click="removeItemAJAX(item.id)" class="p-2 text-gray-300 hover:text-red-500 transition-colors"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-8 pt-8 border-t border-gray-100 flex justify-between items-center shrink-0">
+                    <div>
+                        <button x-show="step === 'view' && items.length > 0" @click="step = 'split'" class="px-6 py-3 bg-amber-50 text-amber-700 font-black rounded-2xl uppercase tracking-widest text-[10px] hover:bg-amber-100 transition-colors flex items-center gap-2 border border-amber-100">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.121 14.121L19 19m-7-7l7-7m-7 7l-2.879 2.879M12 12L9.121 9.121m0 5.758L5 19m0-14l4.121 4.121"></path></svg>
+                            Pisah Nota (Split)
+                        </button>
+                        <button x-show="step === 'split'" @click="step = 'view'; selectedItems = []" class="px-6 py-3 text-gray-400 font-black rounded-2xl uppercase tracking-widest text-[10px] hover:bg-gray-50 transition-colors">Batal Pisah</button>
+                    </div>
+                    <div class="flex gap-4">
+                        <button type="button" x-on:click="$dispatch('close')" class="px-10 py-4 bg-gray-100 text-gray-700 font-black rounded-2xl uppercase tracking-widest text-xs hover:bg-gray-200 transition-colors">Tutup</button>
+                        <a x-show="step === 'view'" href="{{ route('pos.checkout.show', $activeDraft) }}" class="px-10 py-4 bg-sky-600 text-white font-black rounded-2xl shadow-xl shadow-sky-100 hover:bg-sky-700 uppercase tracking-widest text-xs transition-all active:scale-95" :class="items.length === 0 ? 'hidden' : ''">Bayar Sekarang &rarr;</a>
+                        <button x-show="step === 'split'" @click="executeSplit()" :disabled="selectedItems.length === 0" class="px-10 py-4 bg-emerald-600 text-white font-black rounded-2xl shadow-xl shadow-emerald-100 hover:bg-emerald-700 uppercase tracking-widest text-xs transition-all active:scale-95 disabled:opacity-50">Proses Pisah Nota</button>
+                    </div>
+                </div>
             </div>
         </x-modal>
 

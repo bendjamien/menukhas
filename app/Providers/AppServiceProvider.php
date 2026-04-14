@@ -41,7 +41,7 @@ class AppServiceProvider extends ServiceProvider
                             'message' => "Ada {$stokMenipis} produk dengan stok rendah.",
                             'time' => 'Sekarang',
                             'type' => 'warning', // warning, info, danger
-                            'link' => route('dashboard') // Arahkan ke dashboard untuk liat detail
+                            'link' => route('produk.index', ['filter' => 'stok_rendah']) // Arahkan ke daftar produk dengan filter
                         ];
                     }
                 }

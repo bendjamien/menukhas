@@ -32,11 +32,26 @@
                     </select>
                 </div>
                 <button type="submit" class="px-6 py-2.5 bg-gray-900 hover:bg-black text-white text-sm font-bold rounded-xl transition-all shadow-md">Filter</button>
-                @if(request()->anyFilled(['search', 'kategori']))
+                @if(request()->anyFilled(['search', 'kategori', 'filter']))
                     <a href="{{ route('produk.index') }}" class="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-sm font-bold rounded-xl transition-all text-center">Reset</a>
                 @endif
             </form>
         </div>
+
+        @if(request('filter') === 'stok_rendah')
+            <div class="bg-amber-50 border border-amber-100 rounded-xl p-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-amber-800">Menampilkan Stok Menipis</p>
+                        <p class="text-xs text-amber-600">Menampilkan semua produk dengan stok di bawah {{ $batasStokMenipis }}.</p>
+                    </div>
+                </div>
+                <a href="{{ route('produk.index') }}" class="text-xs font-black text-amber-700 uppercase tracking-widest hover:underline">Lihat Semua Produk &rarr;</a>
+            </div>
+        @endif
 
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="overflow-x-auto">

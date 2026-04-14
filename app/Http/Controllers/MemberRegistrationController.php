@@ -28,11 +28,23 @@ class MemberRegistrationController extends Controller
 
     public function sendOTP(Request $request)
     {
-        $request->validate([
+        $rules = [
             'nama' => 'required|string|max:100',
             'metode' => 'required|in:email,whatsapp',
             'target' => 'required|string',
-        ]);
+        ];
+
+        // Tambahkan validasi email jika metode adalah email
+        if ($request->metode === 'email') {
+            $rules['target'] = 'required|email';
+        }
+
+        $messages = [
+            'target.email' => 'Mohon masukkan alamat email yang benar dan valid.',
+            'target.required' => 'Email atau Nomor WhatsApp wajib diisi.'
+        ];
+
+        $request->validate($rules, $messages);
 
         $exists = Pelanggan::where('email', $request->target)
                           ->orWhere('no_hp', $request->target)

@@ -8,8 +8,65 @@
         loading: false,
         message: '',
         error: '',
+        showResumeModal: false,
+
+        init() {
+            // Cek apakah ada data pendaftaran yang tersimpan
+            const savedData = localStorage.getItem('pending_registration');
+            if (savedData) {
+                const data = JSON.parse(savedData);
+                // Hanya tawarkan resume jika sudah mengisi minimal nama dan target
+                if (data.nama && data.target && data.step < 3) {
+                    this.showResumeModal = true;
+                }
+            }
+
+            // Watcher untuk menyimpan data setiap ada perubahan
+            this.$watch('step', () => this.saveToLocal());
+            this.$watch('nama', () => this.saveToLocal());
+            this.$watch('target', () => this.saveToLocal());
+            this.$watch('metode', () => this.saveToLocal());
+        },
+
+        saveToLocal() {
+            if (this.step < 3) {
+                localStorage.setItem('pending_registration', JSON.stringify({
+                    step: this.step,
+                    metode: this.metode,
+                    nama: this.nama,
+                    target: this.target
+                }));
+            }
+        },
+
+        resumeRegistration() {
+            const data = JSON.parse(localStorage.getItem('pending_registration'));
+            this.step = data.step;
+            this.metode = data.metode;
+            this.nama = data.nama;
+            this.target = data.target;
+            this.showResumeModal = false;
+            Toastify({ text: 'Melanjutkan pendaftaran terakhir...', duration: 2000, style: { background: '#0ea5e9' } }).showToast();
+        },
+
+        cancelRegistration() {
+            localStorage.removeItem('pending_registration');
+            this.showResumeModal = false;
+            this.step = 1;
+            this.nama = '';
+            this.target = '';
+        },
 
         async sendOTP() {
+            // Validasi format email secara client-side
+            if (this.metode === 'email') {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(this.target)) {
+                    this.error = 'Input email yang sesuai dan yang benar (contoh: nama@mail.com)';
+                    return;
+                }
+            }
+
             this.loading = true;
             this.error = '';
             try {
@@ -21,6 +78,7 @@
                 let data = await res.json();
                 if (res.ok) {
                     this.step = 2;
+                    this.saveToLocal(); // Simpan step terbaru
                     Toastify({ text: data.message, duration: 3000, style: { background: '#10b981' } }).showToast();
                 } else {
                     this.error = data.message;
@@ -41,6 +99,7 @@
                 let data = await res.json();
                 if (res.ok) {
                     this.step = 3;
+                    localStorage.removeItem('pending_registration'); // Bersihkan setelah sukses
                     Toastify({ text: data.message, duration: 5000, style: { background: '#10b981' } }).showToast();
                 } else {
                     this.error = data.message;
@@ -49,6 +108,22 @@
             this.loading = false;
         }
     }">
+
+        <!-- Resume Registration Modal -->
+        <div x-show="showResumeModal" class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm" x-cloak>
+            <div class="bg-white w-full max-w-sm rounded-[2rem] p-8 shadow-2xl text-center">
+                <div class="w-20 h-20 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <h2 class="text-xl font-black text-slate-800 mb-2 uppercase tracking-tight">Lanjutkan Daftar?</h2>
+                <p class="text-slate-500 text-sm mb-8">Kami menemukan pendaftaran atas nama <span class="font-bold text-slate-800" x-text="JSON.parse(localStorage.getItem('pending_registration'))?.nama"></span> yang belum selesai.</p>
+                
+                <div class="flex flex-col gap-3">
+                    <button @click="resumeRegistration()" class="w-full py-4 bg-sky-600 text-white font-black rounded-xl uppercase tracking-widest text-[10px] shadow-lg shadow-sky-100 transition-all active:scale-95">Lanjutkan Daftar</button>
+                    <button @click="cancelRegistration()" class="w-full py-4 bg-slate-100 text-slate-500 font-black rounded-xl uppercase tracking-widest text-[10px] transition-colors hover:bg-slate-200">Batalkan & Baru</button>
+                </div>
+            </div>
+        </div>
 
         <!-- Header Section (Full Width) -->
         <div class="bg-white border-b border-gray-100 px-8 py-6 mb-6 rounded-3xl shadow-sm">

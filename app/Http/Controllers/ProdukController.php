@@ -63,6 +63,9 @@ class ProdukController extends Controller
     {
         $search = $request->query('search');
         $kategoriId = $request->query('kategori');
+        $filter = $request->query('filter');
+
+        $batasStokMenipis = \App\Models\Setting::where('key', 'stok_minimum')->value('value') ?? 5;
 
         $query = Produk::with('kategori');
 
@@ -75,6 +78,10 @@ class ProdukController extends Controller
 
         if ($kategoriId) {
             $query->where('kategori_id', $kategoriId);
+        }
+
+        if ($filter === 'stok_rendah') {
+            $query->where('stok', '<=', $batasStokMenipis);
         }
 
         $produks = $query->orderBy('stok', 'asc')
