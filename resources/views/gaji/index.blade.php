@@ -64,6 +64,7 @@
                 <h1 class="text-3xl font-black text-slate-800 tracking-tight">Gaji Karyawan</h1>
                 <p class="text-slate-500 text-sm mt-1 font-bold uppercase tracking-widest">Periode: {{ date('F', mktime(0, 0, 0, $bulan, 10)) }} {{ $tahun }}</p>
             </div>
+            @if(auth()->user()->role !== 'owner')
             <div class="flex gap-3">
                 <form action="{{ route('gaji.generate') }}" method="POST">
                     @csrf
@@ -74,6 +75,7 @@
                     </button>
                 </form>
             </div>
+            @endif
         </div>
 
         <!-- Filter Periode -->
@@ -131,20 +133,24 @@
                                 <td class="px-6 py-4">
                                     <div class="flex items-center justify-center gap-2">
                                         @if($g->status_bayar == 'pending')
-                                            <a href="{{ route('gaji.edit', $g) }}" class="p-2 text-sky-600 hover:bg-sky-50 rounded-lg transition-colors" title="Edit Lembur">
-                                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
-                                            </a>
-                                            <button type="button" 
-                                                    @click="showPayModal = true; 
-                                                            payStep = 'form';
-                                                            userName = '{{ $g->user->name }}';
-                                                            userBank = '{{ $g->user->pengaturanGaji->bank ?? '' }}';
-                                                            userRek = '{{ $g->user->pengaturanGaji->nomor_rekening ?? '' }}';
-                                                            selectedGaji = 'Rp {{ number_format($g->total_diterima, 0, ',', '.') }}';
-                                                            payUrl = '{{ route('gaji.bayar', $g) }}';"
-                                                    class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20">
-                                                Bayar Gaji
-                                            </button>
+                                            @if(auth()->user()->role !== 'owner')
+                                                <a href="{{ route('gaji.edit', $g) }}" class="p-2 text-sky-600 hover:bg-sky-50 rounded-lg transition-colors" title="Edit Lembur">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                                </a>
+                                                <button type="button" 
+                                                        @click="showPayModal = true; 
+                                                                payStep = 'form';
+                                                                userName = '{{ $g->user->name }}';
+                                                                userBank = '{{ $g->user->pengaturanGaji->bank ?? '' }}';
+                                                                userRek = '{{ $g->user->pengaturanGaji->nomor_rekening ?? '' }}';
+                                                                selectedGaji = 'Rp {{ number_format($g->total_diterima, 0, ',', '.') }}';
+                                                                payUrl = '{{ route('gaji.bayar', $g) }}';"
+                                                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20">
+                                                    Bayar Gaji
+                                                </button>
+                                            @else
+                                                <span class="text-slate-400 text-[10px] font-bold uppercase">Menunggu Pembayaran</span>
+                                            @endif
                                         @else
                                             <button type="button" 
                                                     onclick="printReceipt('{{ route('gaji.cetak', $g) }}')"

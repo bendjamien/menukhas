@@ -69,6 +69,71 @@ class TransaksiController extends Controller
             'kasirs'
         ));
     }
+
+    public function trashed(Request $request)
+    {
+        if (Auth::user()->role !== 'admin') {
+            abort(403, 'Hanya Admin yang dapat mengakses riwayat hapus.');
+        }
+
+        $search = $request->query('search');
+        $query = Transaksi::onlyTrashed()->with(['kasir', 'pelanggan']);
+
+        if ($search) {
+            $query->where(function($q) use ($search) {
+                $q->where('id', 'like', "%{$search}%")
+                  ->orWhereHas('kasir', function($subQ) use ($search) {
+                      $subQ->where('name', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('pelanggan', function($subQ) use ($search) {
+                      $subQ->where('nama', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        $transaksis = $query->orderBy('deleted_at', 'desc')->paginate(10)->withQueryString();
+
+        return view('transaksi.trashed', compact('transaksis', 'search'));
+    }
+
+    public function destroy(Transaksi $transaksi)
+    {
+        if (Auth::user()->role !== 'admin') {
+            return back()->with('toast_danger', 'Hanya Admin yang dapat menghapus transaksi.');
+        }
+
+        $transaksi->delete();
+
+        return back()->with('toast_success', 'Transaksi berhasil dipindahkan ke riwayat hapus.');
+    }
+
+    public function restore($id)
+    {
+        if (Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        $transaksi = Transaksi::withTrashed()->findOrFail($id);
+        $transaksi->restore();
+
+        return redirect()->route('transaksi.trashed')->with('toast_success', 'Transaksi berhasil dipulihkan.');
+    }
+
+    public function forceDelete($id)
+    {
+        if (Auth::user()->role !== 'admin') {
+            abort(403);
+        }
+
+        $transaksi = Transaksi::withTrashed()->findOrFail($id);
+        
+        // Hapus detail transaksi juga secara permanen jika perlu
+        $transaksi->details()->delete();
+        $transaksi->forceDelete();
+
+        return redirect()->route('transaksi.trashed')->with('toast_success', 'Transaksi dihapus secara permanen.');
+    }
+
     public function show(Transaksi $transaksi)
     {
         $transaksi->load(['kasir', 'pelanggan', 'details.produk', 'pembayaran']);

@@ -84,21 +84,23 @@ class ChatController extends Controller
         // Bagian 1: Basis Pengetahuan tentang Aplikasi MenuKhas
         // Ini adalah "dokumentasi" yang diberikan kepada AI agar memahami aplikasi Anda.
         $dokumentasiAplikasi = "
-        === DOKUMENTASI APLIKASI MENUKHAS ===
-        MenuKhas adalah aplikasi kasir dan manajemen toko yang komprehensif.
+        === DOKUMENTASI LENGKAP APLIKASI MENUKHAS ===
+        MenuKhas adalah aplikasi POS (Point of Sales) dan manajemen toko / restoran yang sangat komprehensif.
         
-        **Fitur Utama:**
-        - **Manajemen Penjualan:** Mencatat transaksi, mencetak struk, dan mengelola berbagai metode pembayaran (Tunai, Transfer, E-Wallet).
-        - **Manajemen Inventaris:** Melacak stok produk, menambah produk baru, dan mencatat log perubahan stok (masuk/keluar).
-        - **Manajemen Pelanggan:** Menyimpan data pelanggan dan sistem poin untuk loyalitas.
-        - **Sistem Voucher:** Membuat dan mengelola kode promo/voucher untuk diskon.
-        - **Laporan:** Menyediakan laporan penjualan, omzet, dan produk terlaris.
-        - **Manajemen Pengguna (User):** Sistem memiliki beberapa peran (role) dengan akses yang berbeda.
+        **Modul & Fitur Utama:**
+        1. **Manajemen Penjualan (Kasir/POS):** Mencatat pesanan, menghitung total, menerapkan diskon (voucher/poin), mencetak struk, dan mencatat metode pembayaran (Tunai, Transfer via simulasi Midtrans). Mendukung pemotongan stok otomatis.
+        2. **Manajemen Inventaris (Gudang):** Mengelola master data produk, kategori, harga modal & jual. Melacak stok (masuk/keluar) beserta riwayat/log perubahannya.
+        3. **Manajemen Pelanggan (Member):** Mendaftarkan pelanggan reguler menjadi member, mengelola level member, dan sistem poin loyalitas (dapat poin tiap belanja, poin bisa ditukar diskon).
+        4. **Sistem Shift (Buka/Tutup Kasir):** Kasir wajib membuka shift dengan modal awal sebelum bertransaksi, dan menutup shift di akhir jam kerja dengan laporan selisih kas fisik vs sistem.
+        5. **Sistem Absensi (Kehadiran):** Karyawan dapat melakukan absen masuk dan pulang. Sistem menghitung keterlambatan berdasarkan jam operasional yang ditentukan admin.
+        6. **Manajemen Kasbon (Pinjaman Karyawan):** Karyawan bisa meminjam uang (kasbon) yang nantinya akan otomatis memotong gaji bulanan mereka.
+        7. **Penggajian (Payroll):** Mengatur gaji pokok karyawan. Sistem secara otomatis membuat slip gaji bulanan = (Gaji Pokok + Lembur) - Potongan Kasbon. Pembayaran gaji bisa via Tunai atau Transfer.
+        8. **Laporan Keuangan & Operasional:** Laporan omzet pendapatan, pengeluaran operasional (sewa, listrik, dll), rekap absensi, riwayat gaji, dan rekap shift kasir. Dapat diekspor ke PDF.
 
-        **Peran Pengguna (User Roles):**
-        - **Admin:** Akses penuh ke semua fitur, termasuk manajemen pengguna, pengaturan toko, melihat laporan lengkap, dan mengelola master data (produk, pelanggan, voucher).
-        - **Kasir:** Fokus pada fitur penjualan. Bisa membuat transaksi, menggunakan voucher, dan melihat laporan sederhana harian.
-        - **Gudang:** Fokus pada manajemen stok. Bisa menambahkan produk baru, memperbarui stok, dan melihat log aktivitas stok.
+        **Peran Pengguna (Role):**
+        - **Owner/Admin:** Akses penuh ke seluruh fitur (pengaturan gaji, laporan keuangan, hapus data, dll).
+        - **Kasir:** Hanya bisa akses POS, buka/tutup shift, absensi, dan kasbon.
+        - **Karyawan:** Bisa absensi, kasbon, dan melihat riwayat gajinya sendiri.
         ";
 
         // Bagian 2: Gabungkan semua data real-time ke dalam satu blok
@@ -117,59 +119,76 @@ class ChatController extends Controller
 
         // Bagian 3: Rangkai semua bagian menjadi prompt akhir
         $finalPrompt = "
-        PERAN: Kamu adalah 'Mks Bot', asisten AI cerdas untuk aplikasi kasir 'MenuKhas' dan juga asisten umum.
-        USER: $userName
-        WAKTU SEKARANG: " . now()->format('d M Y H:i') . "
+        PERAN: Kamu adalah 'Mks Bot', asisten AI tingkat lanjut, sangat cerdas, dan ahli untuk sistem 'MenuKhas' (POS, HR, & ERP) sekaligus asisten ahli berpengetahuan luas.
+        NAMA USER YANG BERTANYA: $userName
+        WAKTU SERVER SEKARANG: " . now()->format('d M Y H:i:s') . "
 
-        PETUNJUK:
-        1. **Jawab berdasarkan Konteks Aplikasi:** Jika pertanyaan user seputar cara kerja, fitur, atau 'how-to' aplikasi MenuKhas, gunakan 'DOKUMENTASI APLIKASI' di bawah ini sebagai sumber utama jawabanmu.
-        2. **Jawab berdasarkan Data Real-Time:** Jika pertanyaan user seputar laporan toko (omzet, stok, transaksi, best seller, dll), gunakan data dari 'LAPORAN REAL-TIME' di bawah.
-        3. **Jawab sebagai Asisten Umum:** Jika pertanyaan tidak relevan dengan aplikasi atau data toko, jawablah dengan pengetahuan umummu sebaik mungkin.
-        4. **Bersikaplah Ramah dan Bermanfaat:** Selalu jawab dengan nada yang ramah dan membantu.
+        PETUNJUK UTAMA (PENTING):
+        1. **Jadilah Ahli & Analitis:** Berikan jawaban yang komprehensif, akurat, profesional, namun tetap mudah dipahami. Jangan berikan jawaban singkat yang terkesan 'robotik', gunakan gaya bahasa layaknya konsultan bisnis & IT.
+        2. **Gunakan Konteks Aplikasi MenuKhas:** Jika ditanya seputar cara penggunaan, alur kerja, kasbon, gaji, absensi, atau POS, rujuk pada 'DOKUMENTASI LENGKAP APLIKASI MENUKHAS'.
+        3. **Analisis Data Real-Time:** Jika user menanyakan laporan hari ini (penjualan, omzet, stok, kasbon, dsb), gunakan data dari 'LAPORAN REAL-TIME' dengan cerdas. Berikan insight tambahan (misal: 'Omzet hari ini cukup baik dengan best seller X...').
+        4. **Jawab Pertanyaan Umum Apa Saja:** Jika user bertanya tentang topik di luar MenuKhas (misal: coding, matematika, sejarah, resep masakan, tips bisnis), jawablah dengan cerdas layaknya ChatGPT / Gemini versi penuh. Jangan pernah bilang 'Saya hanya bisa menjawab tentang MenuKhas'.
+        5. **Format Jawaban:** Gunakan Markdown (bold, italic, list) agar rapi dan mudah dibaca di dalam UI chat.
 
-        --- MULAI KONTEKS ---
+        --- MULAI KONTEKS MENUKHAS ---
         
         $dokumentasiAplikasi
 
         $laporanRealTime
 
-        --- AKHIR KONTEKS ---
+        --- AKHIR KONTEKS MENUKHAS ---
 
-        **Pertanyaan dari User:**
+        **Pertanyaan dari User ($userName):**
         $userMessage
         ";
 
         // ============================================================
-        // 3. KIRIM KE AI (SAMA SEPERTI SEBELUMNYA)
+        // 3. KIRIM KE AI
         // ============================================================
         $apiKey = env('GEMINI_API_KEY');
         
-        // Daftar model untuk dicoba, dari yang terbaru ke yang lama
-        $models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+        // Gunakan model yang paling stabil dan cepat (Flash) sebagai utama
+        $models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash'];
+        $lastError = 'Unknown error';
 
         foreach ($models as $model) {
             try {
-                $response = Http::withOptions(['verify' => false]) // Non-aktifkan SSL verify jika ada masalah cert lokal
-                    ->withHeaders(['Content-Type' => 'application/json'])
-                    ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}", [
-                        'contents' => [['parts' => [['text' => $finalPrompt]]]]
-                    ]);
+                $response = Http::withOptions([
+                    'verify' => false,
+                    'connect_timeout' => 10,
+                    'timeout' => 30
+                ])
+                ->withHeaders(['Content-Type' => 'application/json'])
+                ->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}", [
+                    'contents' => [['parts' => [['text' => $finalPrompt]]]]
+                ]);
 
                 if ($response->successful()) {
                     $reply = $response->json('candidates.0.content.parts.0.text');
-                    // Pastikan balasan tidak kosong
-                    if ($reply && trim($reply) !== '') {
+                    if ($reply) {
                         return response()->json(['reply' => $reply]);
                     }
+                } else {
+                    $lastError = "Model {$model} gagal: " . $response->body();
                 }
             } catch (\Exception $e) {
-                // Log error jika perlu, tapi lanjut ke model berikutnya
-                // \Log::error("Gemini API Error for model {$model}: " . $e->getMessage());
+                $lastError = $e->getMessage();
                 continue;
             }
         }
 
-        // Jika semua model gagal
-        return response()->json(['reply' => 'Maaf, semua jalur AI sedang sibuk atau mengalami gangguan. Mohon tunggu sebentar lagi.']);
+        // Jika semua gagal, kembalikan error spesifik agar kita tahu masalahnya
+        $errorMessage = "Gagal menghubungi AI Google. ";
+        if (str_contains($lastError, 'API_KEY_INVALID')) {
+            $errorMessage .= "Penyebab: API Key di file .env tidak valid atau salah.";
+        } elseif (str_contains($lastError, 'RESOURCE_EXHAUSTED')) {
+            $errorMessage .= "Penyebab: Kuota API Key Anda sudah habis (Limit harian tercapai).";
+        } elseif (str_contains($lastError, 'MODEL_NOT_FOUND')) {
+            $errorMessage .= "Penyebab: Nama model AI tidak ditemukan atau tidak didukung oleh API Key ini.";
+        } else {
+            $errorMessage .= "Detail Error: " . substr($lastError, 0, 200);
+        }
+        
+        return response()->json(['reply' => $errorMessage]);
     }
 }

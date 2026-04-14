@@ -96,6 +96,9 @@ class GajiController extends Controller
 
     public function generate(Request $request)
     {
+        if (auth()->user()->role === 'owner') {
+            abort(403, 'Owner hanya diizinkan melihat data.');
+        }
         $bulan = (int)$request->bulan;
         $tahun = (int)$request->tahun;
 
@@ -179,6 +182,9 @@ class GajiController extends Controller
 
     public function bayar(Request $request, Penggajian $penggajian)
     {
+        if (auth()->user()->role === 'owner') {
+            abort(403, 'Owner hanya diizinkan melihat data.');
+        }
         try {
             DB::beginTransaction();
             
@@ -279,11 +285,17 @@ class GajiController extends Controller
 
     public function edit(Penggajian $penggajian)
     {
+        if (auth()->user()->role === 'owner') {
+            abort(403, 'Owner hanya diizinkan melihat data.');
+        }
         return view('gaji.edit', compact('penggajian'));
     }
 
     public function update(Request $request, Penggajian $penggajian)
     {
+        if (auth()->user()->role === 'owner') {
+            abort(403, 'Owner hanya diizinkan melihat data.');
+        }
         $request->validate(['lembur' => 'required|numeric|min:0']);
         
         $totalDiterima = ($penggajian->gaji_pokok + $request->lembur) - $penggajian->potongan_kasbon;
@@ -320,6 +332,9 @@ class GajiController extends Controller
 
     public function settingStore(Request $request)
     {
+        if (auth()->user()->role === 'owner') {
+            abort(403, 'Owner hanya diizinkan melihat data.');
+        }
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'gaji_pokok' => 'required|numeric|min:0',

@@ -73,12 +73,18 @@ class PengeluaranController extends Controller
 
     public function create()
     {
+        if (auth()->user()->role === 'owner') {
+            abort(403, 'Owner hanya diizinkan melihat data.');
+        }
         $kategoris = ['Bahan Baku', 'Operasional', 'Gaji Karyawan', 'Sewa Tempat', 'Lainnya'];
         return view('pengeluaran.create', compact('kategoris'));
     }
 
     public function store(Request $request)
     {
+        if (auth()->user()->role === 'owner') {
+            abort(403, 'Owner hanya diizinkan melihat data.');
+        }
         $request->validate([
             'tanggal' => 'required|date',
             'kategori' => 'required|string',
@@ -99,6 +105,9 @@ class PengeluaranController extends Controller
 
     public function destroy(Pengeluaran $pengeluaran)
     {
+        if (auth()->user()->role === 'owner') {
+            abort(403, 'Owner hanya diizinkan melihat data.');
+        }
         $pengeluaran->delete();
         return back()->with('toast_success', 'Data pengeluaran dihapus.');
     }

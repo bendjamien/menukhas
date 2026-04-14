@@ -20,12 +20,18 @@ class KasbonController extends Controller
 
     public function create()
     {
+        if (auth()->user()->role === 'owner') {
+            abort(403, 'Owner hanya diizinkan melihat data.');
+        }
         $users = User::whereNotIn('role', ['owner', 'admin'])->where('status', true)->get();
         return view('kasbon.create', compact('users'));
     }
 
     public function store(Request $request)
     {
+        if (auth()->user()->role === 'owner') {
+            abort(403, 'Owner hanya diizinkan melihat data.');
+        }
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'nominal' => 'required|numeric|min:1',

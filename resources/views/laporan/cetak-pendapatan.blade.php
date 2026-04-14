@@ -52,7 +52,7 @@
                 <td class="label">Periode:</td>
                 <td>
                     @if($bulan && $bulan != 'all')
-                        {{ \Carbon\Carbon::create()->month($bulan)->translatedFormat('F') }} {{ $tahun }}
+                        {{ \Carbon\Carbon::create()->month((int)$bulan)->translatedFormat('F') }} {{ $tahun }}
                     @else
                         Semua Bulan {{ $tahun }}
                     @endif

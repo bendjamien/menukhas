@@ -5,7 +5,8 @@
             <p class="text-slate-500 text-sm mt-1 uppercase tracking-widest font-bold">Tentukan Nominal Gaji Bulanan Karyawan</p>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="grid grid-cols-1 {{ auth()->user()->role !== 'owner' ? 'lg:grid-cols-3' : '' }} gap-8">
+            @if(auth()->user()->role !== 'owner')
             <div class="lg:col-span-1">
                 <div class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
                     <form action="{{ route('gaji.setting.store') }}" method="POST" class="space-y-6">
@@ -35,8 +36,9 @@
                     </form>
                 </div>
             </div>
+            @endif
 
-            <div class="lg:col-span-2">
+            <div class="{{ auth()->user()->role !== 'owner' ? 'lg:col-span-2' : 'lg:col-span-3' }}">
                 <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
                     <table class="w-full text-left">
                         <thead class="bg-slate-50 border-b border-slate-100">

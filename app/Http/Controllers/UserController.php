@@ -44,6 +44,7 @@ class UserController extends Controller
             'status' => $validated['status'],
             'jam_masuk' => $validated['jam_masuk'],
             'jam_pulang' => $validated['jam_pulang'],
+            'jabatan' => $validated['role'] === 'kasir' ? 'Kasir' : null,
             'password' => Hash::make($validated['password']),
         ]);
 
@@ -76,6 +77,7 @@ class UserController extends Controller
             'status' => $validated['status'],
             'jam_masuk' => $validated['jam_masuk'],
             'jam_pulang' => $validated['jam_pulang'],
+            'jabatan' => $validated['role'] === 'kasir' ? 'Kasir' : $user->jabatan,
         ];
 
         if (!empty($validated['password'])) {

@@ -104,7 +104,7 @@ class MemberRegistrationController extends Controller
         if ($pending->metode === 'email') {
             try { Mail::to($pending->target)->send(new MemberCardMail($pelanggan)); } catch (\Exception $e) {}
         } else {
-            try { $this->sendWhatsAppBarcode($pelanggan); } catch (\Exception $e) {}
+            $this->sendWhatsAppBarcode($pelanggan);
         }
 
         $pending->delete();
@@ -120,10 +120,14 @@ class MemberRegistrationController extends Controller
     {
         if (!$this->whatsapp_token) throw new \Exception("WhatsApp Token belum diatur di .env");
 
+        // Normalisasi nomor HP: ubah 08... menjadi 628...
+        if (str_starts_with($no_hp, '0')) {
+            $no_hp = '62' . substr($no_hp, 1);
+        }
+
         $message = "Halo *{$nama}*,\n\nKode verifikasi pendaftaran member Anda adalah: *{$otp}*\n\nKode ini berlaku selama 10 menit. Mohon tidak memberikan kode ini kepada siapapun.\n\nTerima kasih,\n*" . config('app.name') . "*";
 
-        // Ditambahkan withoutVerifying() untuk mengatasi error SSL di XAMPP/Localhost
-        Http::withHeaders([
+        $response = Http::withHeaders([
             'Authorization' => $this->whatsapp_token,
         ])->withoutVerifying()->post('https://api.fonnte.com/send', [
             'target' => $no_hp,
@@ -131,36 +135,58 @@ class MemberRegistrationController extends Controller
             'delay' => '2',
             'countryCode' => '62',
         ]);
+
+        $resBody = $response->json();
+        
+        if (!$response->successful() || (isset($resBody['status']) && $resBody['status'] === false)) {
+            $errorMsg = $resBody['reason'] ?? 'Terjadi kesalahan pada server WhatsApp gateway.';
+            throw new \Exception($errorMsg);
+        }
     }
 
     private function sendWhatsAppBarcode($pelanggan)
     {
         if (!$this->whatsapp_token) return;
 
+        $no_hp = $pelanggan->no_hp;
+        // Normalisasi nomor HP
+        if (str_starts_with($no_hp, '0')) {
+            $no_hp = '62' . substr($no_hp, 1);
+        }
+
         $nama_toko = config('app.name');
         
-        // 1. KIRIM GAMBAR BARCODE
-        $barcodeUrl = "https://bwipjs-api.metafloor.com/?bcid=code128&text=" . $pelanggan->kode_member . "&scale=3&rotate=N&includetext=true";
+        // 1. GENERATE & SIMPAN BARCODE KE STORAGE LOKAL
+        $barcodeContent = file_get_contents("https://barcodeapi.org/api/128/" . $pelanggan->kode_member . ".png");
+        $filename = 'barcode-' . $pelanggan->kode_member . '.png';
+        $path = 'barcodes/' . $filename;
         
-        Http::withHeaders([
+        // Simpan ke storage/app/public/barcodes/
+        \Illuminate\Support\Facades\Storage::disk('public')->put($path, $barcodeContent);
+        
+        // 2. DAPATKAN URL PUBLIK GAMBAR
+        // CATATAN: Jika di localhost, Fonnte tidak bisa akses URL ini.
+        $barcodeUrl = asset('storage/' . $path);
+        
+        $caption = "Selamat! *{$pelanggan->nama}*,\n\nPendaftaran member Anda di *{$nama_toko}* telah berhasil.\n\n*DATA MEMBER:*\nID: *{$pelanggan->kode_member}*\nLevel: {$pelanggan->member_level}\n\nSimpan gambar barcode ini sebagai kartu member digital Anda. Tunjukkan kepada kasir saat bertransaksi untuk mendapatkan poin.\n\nTerima kasih!";
+
+        // 3. KIRIM KE FONNTE
+        $response = Http::withHeaders([
             'Authorization' => $this->whatsapp_token,
         ])->withoutVerifying()->post('https://api.fonnte.com/send', [
-            'target' => $pelanggan->no_hp,
+            'target' => $no_hp,
             'url' => $barcodeUrl,
+            'message' => $caption,
             'delay' => '2',
             'countryCode' => '62',
         ]);
 
-        // 2. KIRIM DATA MEMBER (TEKS)
-        $message = "Selamat! *{$pelanggan->nama}*,\n\nPendaftaran member Anda di *{$nama_toko}* telah berhasil.\n\n*DATA MEMBER:*\nID: *{$pelanggan->kode_member}*\nLevel: {$pelanggan->member_level}\nPoin: " . number_format($pelanggan->poin) . "\n\nSimpan gambar barcode di atas sebagai kartu member digital Anda. Tunjukkan kepada kasir saat bertransaksi untuk mendapatkan poin.\n\nTerima kasih!";
-
-        Http::withHeaders([
-            'Authorization' => $this->whatsapp_token,
-        ])->withoutVerifying()->post('https://api.fonnte.com/send', [
-            'target' => $pelanggan->no_hp,
-            'message' => $message,
-            'delay' => '3', // Delay sedikit lebih lama agar urutannya pas
-            'countryCode' => '62',
-        ]);
+        $resBody = $response->json();
+        
+        if (!$response->successful() || (isset($resBody['status']) && $resBody['status'] === false)) {
+            $errorMsg = $resBody['reason'] ?? 'Gagal mengirim gambar barcode member.';
+            // Tetap simpan log tapi jangan gagalkan transaksi jika hanya pengiriman WA yang bermasalah
+            \Illuminate\Support\Facades\Log::error("WhatsApp Error: " . $errorMsg);
+        }
     }
 }

@@ -5,43 +5,62 @@
         <div class="flex flex-col md:flex-row flex-grow overflow-hidden">
             
             <!-- LEFT SIDE: PRODUCTS -->
-            <div class="flex-grow flex flex-col min-w-0 border-r border-gray-100 bg-gray-50/30">
+            <div class="flex-grow flex flex-col min-w-0 border-r border-gray-100 bg-gray-50/30" x-data="{ activeCategory: 'all', searchQuery: '{{ $search ?? '' }}' }">
                 
-                <!-- ACTION BAR -->
-                <div class="p-4 bg-white border-b border-gray-100 shrink-0">
-                    <div class="flex flex-col sm:flex-row gap-3">
-                        <div class="relative flex-grow">
-                            <form action="{{ route('pos.index', ['transaksi' => $activeDraft->id]) }}" method="GET" class="relative">
-                                <input type="text" name="search" id="pos-search-input" value="{{ $search ?? '' }}" 
-                                       placeholder="Cari menu atau scan barcode..." 
-                                       class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-10 py-3 focus:ring-2 focus:ring-sky-500 focus:bg-white font-medium text-sm transition-all"
-                                       autofocus autocomplete="off">
-                                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                                </span>
-                                @if($search)
-                                    <a href="{{ route('pos.index', ['transaksi' => $activeDraft->id]) }}" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                    </a>
+                <!-- ACTION BAR & CATEGORIES -->
+                <div class="bg-white border-b border-gray-100 shrink-0">
+                    <!-- SEARCH & ACTIONS -->
+                    <div class="p-4 border-b border-gray-50">
+                        <div class="flex flex-col sm:flex-row gap-3">
+                            <div class="relative flex-grow">
+                                <form action="{{ route('pos.index', ['transaksi' => $activeDraft->id]) }}" method="GET" class="relative">
+                                    <input type="text" name="search" id="pos-search-input" x-model="searchQuery" 
+                                           placeholder="Cari menu atau scan barcode..." 
+                                           class="w-full bg-gray-50 border border-gray-200 rounded-xl pl-11 pr-10 py-3 focus:ring-2 focus:ring-sky-500 focus:bg-white font-medium text-sm transition-all"
+                                           autofocus autocomplete="off">
+                                    <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                    </span>
+                                    <template x-if="searchQuery">
+                                        <button type="button" @click="searchQuery = ''; window.location.href='{{ route('pos.index', ['transaksi' => $activeDraft->id]) }}'" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                        </button>
+                                    </template>
+                                </form>
+                            </div>
+                            
+                            <div class="flex gap-2">
+                                <button type="button" x-data="" x-on:click.prevent="$dispatch('open-modal', 'scan-barcode-modal'); startBarcodeScanner()"
+                                        class="bg-sky-600 hover:bg-sky-700 text-white px-5 rounded-xl shadow-md transition-all flex items-center gap-2 group shrink-0">
+                                    <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+                                    <span class="font-bold text-xs uppercase tracking-widest hidden lg:inline">Scan</span>
+                                </button>
+    
+                                @if(Auth::user()->role === 'kasir')
+                                <a href="{{ route('shift.close.index') }}" 
+                                   class="bg-gray-900 hover:bg-black text-white px-5 rounded-xl shadow-md transition-all flex items-center gap-2 shrink-0 border-2 border-gray-800">
+                                    <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                                    <span class="font-bold text-xs uppercase tracking-widest">Tutup Shift</span>
+                                </a>
                                 @endif
-                            </form>
+                            </div>
                         </div>
-                        
-                        <div class="flex gap-2">
-                            <button type="button" x-data="" x-on:click.prevent="$dispatch('open-modal', 'scan-barcode-modal'); startBarcodeScanner()"
-                                    class="bg-sky-600 hover:bg-sky-700 text-white px-5 rounded-xl shadow-md transition-all flex items-center gap-2 group shrink-0">
-                                <svg class="w-5 h-5 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
-                                <span class="font-bold text-xs uppercase tracking-widest hidden lg:inline">Scan</span>
-                            </button>
+                    </div>
 
-                            @if(Auth::user()->role === 'kasir')
-                            <a href="{{ route('shift.close.index') }}" 
-                               class="bg-gray-900 hover:bg-black text-white px-5 rounded-xl shadow-md transition-all flex items-center gap-2 shrink-0 border-2 border-gray-800">
-                                <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                                <span class="font-bold text-xs uppercase tracking-widest">Tutup Shift</span>
-                            </a>
-                            @endif
-                        </div>
+                    <!-- CATEGORY TABS (THE DRAWER) -->
+                    <div class="px-4 py-3 flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth">
+                        <button @click="activeCategory = 'all'" 
+                                :class="activeCategory === 'all' ? 'bg-sky-600 text-white shadow-sky-100' : 'bg-white text-gray-500 hover:bg-gray-50 border-gray-100'"
+                                class="px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm border whitespace-nowrap">
+                            Semua Menu
+                        </button>
+                        @foreach($kategoris as $kat)
+                            <button @click="activeCategory = '{{ $kat->nama }}'" 
+                                    :class="activeCategory === '{{ $kat->nama }}' ? 'bg-sky-600 text-white shadow-sky-100' : 'bg-white text-gray-500 hover:bg-gray-50 border-gray-100'"
+                                    class="px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-sm border whitespace-nowrap">
+                                {{ $kat->nama }}
+                            </button>
+                        @endforeach
                     </div>
                 </div>
 
@@ -52,8 +71,13 @@
                             @php
                                 $qtyInCart = $activeDraft->details->where('produk_id', $produk->id)->sum('jumlah') ?? 0;
                                 $displayStock = $produk->stok - $qtyInCart;
+                                $kategoriName = $produk->kategori->nama ?? 'Umum';
                             @endphp
                             <div x-data="{ qty: 1, currentStock: {{ $displayStock }} }" 
+                                 x-show="activeCategory === 'all' || activeCategory === '{{ $kategoriName }}'"
+                                 x-transition:enter="transition ease-out duration-300"
+                                 x-transition:enter-start="opacity-0 scale-95"
+                                 x-transition:enter-end="opacity-100 scale-100"
                                  class="product-card" 
                                  data-produk-id="{{ $produk->id }}" 
                                  data-stok-asli="{{ $produk->stok }}"

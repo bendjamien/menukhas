@@ -19,7 +19,7 @@ class KaryawanController extends Controller
 
     public function index()
     {
-        $karyawans = User::where('role', 'karyawan')->latest()->paginate(10);
+        $karyawans = User::whereIn('role', ['karyawan', 'kasir'])->latest()->paginate(10);
         return view('karyawan.index', compact('karyawans'));
     }
 
@@ -96,8 +96,8 @@ class KaryawanController extends Controller
 
     public function destroy(User $karyawan)
     {
-        // Pastikan dia memang role karyawan sebelum hapus
-        if ($karyawan->role !== 'karyawan') {
+        // Pastikan dia memang role karyawan atau kasir sebelum hapus
+        if (!in_array($karyawan->role, ['karyawan', 'kasir'])) {
             return back()->with('toast_danger', 'Tidak dapat menghapus user ini dari sini.');
         }
         

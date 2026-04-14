@@ -63,11 +63,12 @@ class PosController extends Controller
                   ->orWhere('kode_barcode', 'like', "%{$search}%");
             });
         }
-        $produks = $produksQuery->orderBy('nama_produk', 'asc')->limit(50)->get();
+        $produks = $produksQuery->orderBy('nama_produk', 'asc')->get();
         
         $pelanggans = Pelanggan::orderBy('nama', 'asc')->get();
+        $kategoris = \App\Models\Kategori::orderBy('nama', 'asc')->get();
 
-        return view('pos.index', compact('produks', 'pelanggans', 'activeDraft', 'pendingDrafts', 'search'));
+        return view('pos.index', compact('produks', 'pelanggans', 'activeDraft', 'pendingDrafts', 'search', 'kategoris'));
     }
 
     private function createEmptyDraft($kasirId)

@@ -36,7 +36,9 @@
                         <tr class="hover:bg-slate-50/50 transition-colors">
                             <td class="px-6 py-4 font-bold text-slate-700">{{ $k->name }}</td>
                             <td class="px-6 py-4">
-                                <span class="px-3 py-1 bg-sky-50 text-sky-700 rounded-lg text-[10px] font-black uppercase tracking-widest">{{ $k->jabatan }}</span>
+                                <span class="px-3 py-1 bg-sky-50 text-sky-700 rounded-lg text-[10px] font-black uppercase tracking-widest">
+                                    {{ $k->jabatan ?? ($k->role === 'kasir' ? 'Kasir' : '-') }}
+                                </span>
                             </td>
                             <td class="px-6 py-4 font-mono font-bold text-sky-600">{{ $k->pin }}</td>
                             <td class="px-6 py-4 text-slate-500 font-medium italic">{{ $k->no_hp ?? '-' }}</td>

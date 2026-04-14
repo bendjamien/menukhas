@@ -5,9 +5,11 @@
                 <h1 class="text-3xl font-black text-slate-800 tracking-tight">Kasbon Karyawan</h1>
                 <p class="text-slate-500 text-sm mt-1 font-bold uppercase tracking-widest">Kelola Pinjaman Sementara Karyawan</p>
             </div>
+            @if(auth()->user()->role !== 'owner')
             <a href="{{ route('kasbon.create') }}" class="inline-flex items-center gap-2 px-6 py-3 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 transition-all text-sm shadow-lg shadow-rose-100 uppercase tracking-widest">
                 Input Kasbon Baru
             </a>
+            @endif
         </div>
 
         <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">

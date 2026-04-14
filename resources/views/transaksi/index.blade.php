@@ -1,5 +1,5 @@
 <x-app-layout>
-    <div class="space-y-8">
+    <div class="space-y-8" x-data="{ deleteUrl: '', orderId: '' }">
         
         <!-- Header Section -->
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -12,9 +12,15 @@
                 @endif
             </div>
             
-            <!-- Quick Stats (Optional, adds professional feel) -->
-            <div class="hidden md:flex gap-6">
-                <div class="text-right">
+            <!-- Quick Stats & Actions -->
+            <div class="flex gap-4 items-center">
+                @if(Auth::user()->role === 'admin')
+                <a href="{{ route('transaksi.trashed') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-rose-50 text-rose-600 font-bold rounded-xl hover:bg-rose-100 transition-all text-xs border border-rose-100 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    Riwayat Hapus
+                </a>
+                @endif
+                <div class="hidden md:block text-right">
                     <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Transaksi</span>
                     <p class="text-xl font-bold text-slate-700">{{ $transaksis->total() }}</p>
                 </div>
@@ -134,11 +140,20 @@
                                     </span>
                                 </td>
                                 <td class="px-6 py-4 text-center">
-                                    <a href="{{ route('transaksi.show', $transaksi) }}" 
-                                       class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-500 hover:bg-sky-500 hover:text-white transition-all shadow-sm" 
-                                       title="Lihat Detail">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
-                                    </a>
+                                    <div class="flex items-center justify-center gap-2">
+                                        <a href="{{ route('transaksi.show', $transaksi) }}" 
+                                           class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-slate-100 text-slate-500 hover:bg-sky-500 hover:text-white transition-all shadow-sm" 
+                                           title="Lihat Detail">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                        </a>
+                                        @if(Auth::user()->role === 'admin')
+                                        <button @click="$dispatch('open-modal', 'confirm-delete-modal'); deleteUrl = '{{ route('transaksi.destroy', $transaksi) }}'; orderId = '#{{ $transaksi->id }}'" 
+                                                class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-rose-50 text-rose-500 hover:bg-rose-500 hover:text-white transition-all shadow-sm" 
+                                                title="Hapus Transaksi">
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        </button>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @empty
@@ -206,5 +221,22 @@
                 </div>
             @endif
         </div>
+
+        <!-- Delete Confirmation Modal -->
+        <x-modal name="confirm-delete-modal" focusable maxWidth="sm">
+            <div class="p-8 text-center">
+                <div class="w-20 h-20 bg-rose-100 text-rose-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                </div>
+                <h2 class="text-xl font-black text-slate-800 mb-2 uppercase tracking-tight">Hapus Transaksi?</h2>
+                <p class="text-slate-500 text-sm mb-8">Anda yakin ingin menghapus transaksi <span class="font-bold text-slate-800" x-text="orderId"></span>? Transaksi akan dipindahkan ke riwayat hapus.</p>
+                
+                <form :action="deleteUrl" method="POST" class="flex gap-3">
+                    @csrf @method('DELETE')
+                    <button type="button" x-on:click="$dispatch('close')" class="flex-1 py-4 bg-slate-100 text-slate-500 font-black rounded-xl uppercase tracking-widest text-[10px]">Batal</button>
+                    <button type="submit" class="flex-1 py-4 bg-rose-600 text-white font-black rounded-xl uppercase tracking-widest text-[10px] shadow-lg shadow-rose-100">Ya, Hapus</button>
+                </form>
+            </div>
+        </x-modal>
     </div>
 </x-app-layout>

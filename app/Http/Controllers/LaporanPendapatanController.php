@@ -132,7 +132,7 @@ class LaporanPendapatanController extends Controller
         $parts = explode(',', $alamat);
         $kota = trim(end($parts));
 
-        $periode = ($bulan && $bulan != 'all' ? Carbon::createFromDate(null, $bulan, 1)->isoFormat('MMMM') : 'Semua Bulan') . ' ' . $tahun;
+        $periode = ($bulan && $bulan != 'all' ? Carbon::createFromDate(null, (int)$bulan, 1)->isoFormat('MMMM') : 'Semua Bulan') . ' ' . $tahun;
         $filename = "Laporan_Pendapatan_" . str_replace(' ', '_', $periode) . ".xls";
 
         return response()->streamDownload(function() use ($transaksis, $totalPendapatan, $settings, $periode, $ownerName, $kota) {
